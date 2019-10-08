@@ -211,7 +211,7 @@ synchronized void setB() throws Exception{
 * **空间复杂度**：运行完一个程序所需内存的大小。
 
   **算法总结**
-  ![img](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image001.png?raw=true)
+  ![clip_image001.jpg](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image001.png?raw=true)
 
 **图片名词解释：**
 * n: 数据规模
@@ -221,7 +221,7 @@ synchronized void setB() throws Exception{
 
 **算法分类**
 
-![img](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image003.png?raw=true)
+![clip_image002.jpg](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image002.png?raw=true)
 
 ####  
 
@@ -408,7 +408,7 @@ public void quickSort(int left, int right, int[] array) {
 
 #### 5.2 过程演示
 
-![img](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image004.png?raw=true)
+![clip_image003.jpg](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image003.jpg?raw=true)
 
 #### 5.3 代码实现
 ```java
@@ -501,11 +501,11 @@ public static int[] merge(int[] left, int[] right) {
 
 #### 7.2 图片演示
 
-![clip_image007.jpg](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image007.jpg?raw=true)
+![clip_image004.jpg](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image004.jpg?raw=true)
 
-![clip_image009.jpg](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image009.jpg?raw=true)
+![clip_image005.jpg](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image005.jpg?raw=true)
 
-![img](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image011.jpg?raw=true)
+![clip_image006.jpg](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image006.jpg?raw=true)
 
 #### 7.3 代码实现
 ```java
@@ -635,7 +635,7 @@ public static int[] CountingSort(int[] array) {
 
 #### 9.2 图片演示
 
-![img](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image012.png?raw=true)
+![clip_image007.png](https://github.com/LinSiYue/Study-notes/blob/master/img/%E6%8E%92%E5%BA%8F/clip_image007.png?raw=true)
 
 #### 9.3 代码实现
 ```java

@@ -6,7 +6,7 @@
 
 显示效果：
 
-![1570585796495](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1570585796495.png)
+![1570585796495](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/1570585796495.png?raw=true)
 
 代码示例：
 
@@ -116,7 +116,7 @@ option = {
 
 显示效果：
 
-![1570586089910](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1570586089910.png)
+![1570586089910](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/1570586089910.png?raw=true)
 
 代码示例：
 
@@ -243,7 +243,7 @@ export default {
 
 显示效果：
 
-![1570588391675](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1570588391675.png)
+![1570588391675](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/1570588391675.png?raw=true)
 
 代码示例：
 
@@ -419,7 +419,7 @@ option = {
 
 显示效果：
 
-![1570589438517](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1570589438517.png)
+![1570589438517](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/1570589438517.png?raw=true)
 
 代码示例：
 
@@ -518,7 +518,7 @@ option = {
 
 显示效果：
 
-![1570590055184](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1570590055184.png)
+![1570590055184](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/1570590055184.png?raw=true)
 
 代码示例：
 
@@ -619,7 +619,7 @@ option = {
 
 显示效果：
 
-![1570590426566](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1570590426566.png)
+![1570590426566](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/1570590426566.png?raw=true)
 
 代码示例：
 
@@ -735,7 +735,7 @@ option = {
 
 显示效果：
 
-![1570593038621](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1570593038621.png)
+![1570593038621](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/1570593038621.png?raw=true)
 
 代码示例：
 

@@ -71,7 +71,7 @@ deploy_springboot:
 
 ## 3.注册runner
 
-![1571041612644](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1571041612644.png)
+![1571041612644](https://github.com/LinSiYue/Study-notes/blob/master/img/gitlab-ci/1571041612644.png?raw=true)
 
 进入gitlab-runner.exe目录下，打开命令行窗口：
 

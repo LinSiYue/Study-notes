@@ -983,7 +983,7 @@ setInterval(function (){
 
 显示效果：
 
-![1571283545662](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1571283545662.png)
+![1571283545662](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/1571283545662.png?raw=true)
 
 代码示例：
 

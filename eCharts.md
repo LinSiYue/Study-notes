@@ -979,6 +979,206 @@ setInterval(function (){
 },2000);
 ```
 
+### 8、GL 3D地球
+
+显示效果：
+
+![1571283545662](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1571283545662.png)
+
+代码示例：
+
+```vue
+<template>
+    <div id="myChart"></div>
+</template>
+
+<script>
+    import SockJS from 'sockjs-client';
+    import Stomp from "stompjs";
+
+    export default {
+        name: "Geo",
+        mounted() {
+            this.initMap()
+            this.createSockClient()
+        },
+        data() {
+            return {
+                myChart: {},
+                mapChart: {},
+                num: 0,
+                img: require('../static/timg.png'),
+                userId: '1',
+                sockClient: '',
+                stompClient: '',
+                backendData: [],
+                routeData: [],
+                option: {
+                    backgroundColor: '#000',
+                    globe: {
+                        globeRadius: 60,
+                        baseTexture: '',
+                        silent: true,
+                        environment: '',
+                        shading: 'realistic',
+                        light: {
+                            main: {
+                                color: '#fff',
+                                intensity: 0.8,
+                                shadow: false,
+                                shadowQuality: 'high',
+                                alpha: 55,
+                                beta: 10
+                            },
+                            ambient: {
+                                color: '#fff',
+                                intensity: 0.5
+                            }
+                        },
+                        postEffect: {
+                            enable: false,
+                            SSAO: {
+                                enable: true,
+                                radius: 10
+                            }
+                        },
+                        viewControl: {
+                            autoRotate: false,
+                            autoRotateDirection: 'cw',
+                            alpha: 40,
+                            beta: 15,
+                            autoRotateAfterStill: 1,
+                            animationDurationUpdate: 2000
+                        }
+                    },
+                    series: [
+                        {
+                            type: 'lines3D',
+                            // 尾迹线条
+                            effect: {
+                                show: true,
+                                period: 3,
+                                trailWidth: 3,
+                                trailLength: 1,
+                                trailOpacity: 1,
+                                trailColor: 'rgb(231,14,17)'
+                            },
+                            lineStyle: {
+                                opacity: 0
+                            },
+                            data: []
+                        }
+                    ]
+                },
+                mapOption:{
+                    backgroundColor: 'rgb(255,255,255)',
+                    visualMap: {
+                        show: false,
+                        min: 0,
+                        max: 100000
+                    },
+                    series: [
+                        {
+                            type: 'map',
+                            map: 'world',
+                            left: 0,
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            environment: '#000',
+                            boundingCoords: [
+                                [-180, 90],
+                                [180, -90]
+                            ],
+                            itemStyle: {
+                                normal: {
+                                    borderWidth: 1,
+                                    borderColor: 'rgb(237,177,1)',
+                                    areaColor: 'rgb(71,137,191)',
+                                    color: 'rgb(255,255,255)'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        methods: {
+            initMap() {
+                this.mapChart = echarts.init(document.createElement('canvas'), null, {
+                    width: 3086,
+                    height: 3048
+                });
+                this.myChart = echarts.init(document.getElementById("myChart"));
+                this.mapChart.setOption(this.mapOption);
+                this.option.globe.baseTexture = this.mapChart
+                // 设置背景图片需要用到require访问到静态资源
+                this.option.globe.environment = this.img
+                this.myChart.setOption(this.option);
+            },
+            // 从API中获取数据
+            createSockClient() {
+                this.sockClient = new SockJS("http://ZHAProJB28-W10:8889/searchMap-endPoint");
+                this.stompClient = Stomp.over(this.sockClient);
+                // 由于内部方法中的this和外面的this不同，所以需要赋值变量拿到外部的this
+                let self = this;
+                this.stompClient.connect({}, function () {
+                    self.stompClient.subscribe("/user/" + self.userId + "/dataServe", function (response) {
+                        let result = JSON.parse(response.body);
+                        if (result.map) {
+                            self.backendData = result.map;
+                            self.num = 0;
+                        }
+
+                    })
+                });
+                this.drawLine()
+            },
+            drawLine() {
+                let self = this;
+                // 每次输出一条数据，自动定位
+                setInterval(function () {
+                    let route = [];
+                    if (self.num < self.backendData.length) {
+                        route.push(self.backendData[self.num].coords)
+                        self.num++
+                    }
+                    self.routeData = route
+                    console.log(self.routeData[0][0])
+                    setTimeout(function () {
+                        self.option.series[0].data = self.routeData
+                        self.myChart.setOption(self.option)
+                    }, 1000)
+                    setTimeout(function () {
+                        self.option.globe.viewControl.targetCoord = self.routeData[0][0]
+                        self.myChart.setOption(self.option)
+                    }, 2000)
+                    self.option.globe.viewControl.targetCoord = self.routeData[0][1]
+                    self.myChart.setOption(self.option)
+                }, 5000)
+            },
+            disconnectSockClient() {
+                if (this.stompClient) {
+                    this.stompClient.disconnect();
+                    this.sockClient.close();
+                }
+            },
+        },
+        beforeDestroy() {
+            this.disconnectSockClient();
+            clearInterval(this.reconnectTimer);
+        }
+    }
+</script>
+
+<style scoped>
+    #myChart {
+        width: 100vw;
+        height: 100vh;
+    }
+</style>
+```
+
 ## 二、点击事件
 
 ```vue

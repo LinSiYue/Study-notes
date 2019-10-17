@@ -80,3 +80,4 @@ gitlab-runner register
 ```
 
 需要输入url，然后输入token，之后输入runner的descript，再输入runner的tags名称（这个将来分配runner的时候需要用到），最后选择运行平台或方式，此处我选择shell。
+

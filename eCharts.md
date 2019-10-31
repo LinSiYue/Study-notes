@@ -1217,9 +1217,9 @@ methods: {
 
 示例图片：
 
-![1572488985732](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1572488985732.png)
+![1572488985732](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/3D%E5%9C%B0%E7%90%83geo.png?raw=true)
 
-![1572489003655](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1572489003655.png)
+![1572489003655](https://github.com/LinSiYue/Study-notes/blob/master/img/echarts/%E4%BB%AA%E8%A1%A8%E7%9B%98gauge.png?raw=true)
 
 代码：
 

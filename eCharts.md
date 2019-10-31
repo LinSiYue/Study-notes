@@ -1213,3 +1213,691 @@ methods: {
 </script>
 ```
 
+## 三、自定义示例
+
+示例图片：
+
+![1572488985732](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1572488985732.png)
+
+![1572489003655](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1572489003655.png)
+
+代码：
+
+main.js
+
+```javascript
+import Vue from 'vue'
+import App from './App'
+import router from './router';
+import ElementUI from 'element-ui';
+import 'element-ui/lib/theme-chalk/index.css';
+import store from '@/stores/index';
+
+Vue.config.productionTip = false
+
+Vue.use(ElementUI);
+
+new Vue({
+    render: h => h(App),
+    router,
+    store
+}).$mount('#app')
+```
+
+store.js
+
+```javascript
+import Vue from 'vue'
+import Vuex from 'vuex'
+
+Vue.use(Vuex)
+
+const state = {
+    // 各个组件的图表
+    gaugeChart: {},
+    geoChart: {},
+    pieChart: {},
+    pileChart: {},
+    radarChart: {},
+    worldMapChart: {},
+    // 后台数据
+    backendData: [],
+    // 仪表盘从3D地球geo处取得的数据
+    gaugeData: {}
+}
+
+const mutations = {
+    setGaugeChart(state, gaugeChart) {
+        state.gaugeChart = gaugeChart
+    },
+    setGeoChart(state, geoChart) {
+        state.geoChart = geoChart
+    },
+    setPieChart(state, pieChart) {
+        state.pieChart = pieChart
+    },
+    setPileChart(state, pileChart) {
+        state.pileChart = pileChart
+    },
+    setRadarChart(state, radarChart) {
+        state.radarChart = radarChart
+    },
+    setWorldMapChart(state, worldMapChart) {
+        state.worldMapChart = worldMapChart
+    },
+    setBackendData(state, backendData) {
+        state.backendData = backendData
+    },
+    setGaugeData(state, gaugeData) {
+        state.gaugeData = gaugeData
+    }
+}
+
+const store = new Vuex.Store({
+    state: state,
+    mutations: mutations
+})
+
+export default store;
+```
+
+views/Page.vue
+
+```vue
+<template>
+    <div id="page">
+
+        <div style="width: 30%">
+            <Pie ref="pie"></Pie>
+            <WorldMap ref = "worldMap"></WorldMap>
+        </div>
+
+        <div style="width: 40%">
+            <Geo ref="geo"></Geo>
+            <New></New>
+        </div>
+
+        <div style="width: 30%">
+            <Radar></Radar>
+            <Pile ref="pile"></Pile>
+            <Gauge></Gauge>
+        </div>
+    </div>
+</template>
+
+<script>
+    import SockJS from 'sockjs-client';
+    import Stomp from "stompjs";
+    import Geo from '@/components/Geo'
+    import Pile from '@/components/Pile'
+    import Pie from '@/components/Pie'
+    import Radar from '@/components/Radar'
+    import Gauge from '@/components/Gauge'
+    import WorldMap from '@/components/WorldMap'
+    import New from '@/components/New'
+
+    export default {
+        components: {
+            Geo,
+            Pie,
+            Pile,
+            Radar,
+            Gauge,
+            WorldMap,
+            New
+        },
+        data() {
+            return {
+                userId: '1',
+                sockClient: '',
+                stompClient: ''
+            }
+        },
+        mounted() {
+            this.createSockClient()
+            let self = this
+            // 根据窗口的大小，各个组件进行自适应变化
+            window.onresize = () => {
+                return (() => {
+                    let winWidth = document.body.clientWidth;
+                    self.$store.state.geoChart.resize((options) => {
+                        options.width = winWidth;
+                    });
+                    self.$store.state.gaugeChart.resize((options) => {
+                        options.width = winWidth;
+                    });
+                    self.$store.state.pieChart.resize((options) => {
+                        options.width = winWidth;
+                    });
+                    self.$store.state.pileChart.resize((options) => {
+                        options.width = winWidth;
+                    });
+                    self.$store.state.radarChart.resize((options) => {
+                        options.width = winWidth;
+                    });
+                    self.$store.state.worldMapChart.resize((options) => {
+                        options.width = winWidth;
+                    });
+                })()
+            }
+        },
+        methods: {
+            // 从API中获取数据
+            createSockClient() {
+                // 此处API为数据传输的API，根据实际填入
+                this.sockClient = new SockJS("[API]");
+                this.stompClient = Stomp.over(this.sockClient);
+                // 由于内部方法中的this和外面的this不同，所以需要赋值变量拿到外部的this
+                let self = this;
+                  this.stompClient.connect({},  function () {
+                    // 此处填入url
+                    self.stompClient.subscribe("/user/" + self.userId + "/dataServe", function (response) {
+                        let result = JSON.parse(response.body);
+                        if (result.map.length > 0) {
+                            self.$store.commit("setBackendData", result)
+                            self.$refs.geo.drawLine()
+                            self.$refs.pie.drawPie('main')
+                            self.$refs.pile.drawPile('pile')
+                            self.$refs.worldMap.drawMap()
+                        }
+                    })
+                });
+            },
+            disconnectSockClient() {
+                if (this.stompClient) {
+                    this.stompClient.disconnect();
+                    this.sockClient.close();
+                }
+            }
+        },
+        beforeDestroy() {
+            this.disconnectSockClient();
+        }
+    }
+</script>
+
+<style scoped>
+
+    * {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    html::-webkit-scrollbar {
+        width: 0
+    }
+
+    #page {
+        font-family: 'Avenir', Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-align: center;
+        color: #2c3e50;
+        background-color: rgba(27,27,27,0.5);
+        overflow: -moz-scrollbars-none;
+        position: absolute;
+        top: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    #page div {
+        float: left;
+    }
+
+</style>
+```
+
+Geo.vue
+
+```vue
+<template>
+    <div id="myChart"></div>
+</template>
+<script>
+    import echarts from 'echarts'
+    import 'echarts/map/js/world.js'
+    import 'echarts-gl'
+    
+    export default {
+        name: "Geo",
+        mounted() {
+            this.initMap()
+        },
+        data() {
+            return {
+                timer: '',
+                startIndex: '',
+                endIndex: '',
+                myChart: this.$store.state.geoChart,
+                mapChart: {},
+                routeCount :{
+                    name:'',
+                    value:''
+                },
+                scatterPinData: {},
+                img: require('../static/img/charity_top.png'),
+                backendData: this.$store.state.backendData,
+                routeData: [],
+                option: {
+                    globe: {
+                        globeRadius: 80,
+                        baseTexture: '',
+                        silent: true,
+                        environment: '',
+                        heightTexture: require("../static/img/map.jpg"),
+                        shading: 'realistic',
+                        light: {
+                            main: {
+                                color: '#fff',
+                                intensity: 0,
+                                shadow: false,
+                                shadowQuality: 'high',
+                                alpha: 55,
+                                beta: 10
+                            },
+                            ambient: {
+                                color: '#fff',
+                                intensity: 1
+                            }
+                        },
+                        postEffect: {
+                            enable: false,
+                            SSAO: {
+                                enable: true,
+                                radius: 10
+                            }
+                        },
+                        viewControl: {
+                            autoRotate: false,
+                            animationDurationUpdate: 2000,
+                            targetCoord: ''
+                        }
+                    },
+                    series: [
+                        {
+                            type: 'lines3D',
+                            coordinateSystem: 'globe',
+                            lineStyle: {
+                                opacity: 0,
+                                width: 2,
+                                color: function (params) {
+                                    var colorList = ['rgb(248,184,120)', 'rgb(138,0,139)'];
+                                    if (params.dataIndex == 0) {
+                                        return colorList[0]
+                                    } else {
+                                        return colorList[1]
+                                    }
+                                }
+                            },
+                            effect: {
+                                show: true,
+                                trailOpacity: 1,
+                                trailLength: 0.2,
+                                period: 2,
+                                trailWidth: 6
+                            },
+                            data: []
+                        },
+                        {
+                            type: 'scatter3D',
+                            coordinateSystem: 'globe',
+                            blendMode: 'lighter',
+                            symbolSize: 20,
+                            symbol: 'pin',
+                            silent: false,
+                            itemStyle: {
+                                color: function (params) {
+                                    var colorList = ['rgb(246, 153, 180)', 'rgb(118,77,209)'];
+                                    if (params.dataIndex % 2 != 0) {
+                                        return colorList[0]
+                                    } else {
+                                        return colorList[1]
+                                    }
+                                },
+                                opacity: 1
+                            },
+                            label: {
+                                formatter: function (params) {
+                                    if (params.dataIndex % 2 != 0) {
+                                        return 'Destination:\n' + params.name
+                                    } else {
+                                        return 'Departure:\n' + params.name
+                                    }
+                                },
+                                position: 'top'
+                            }
+                        }
+                    ]
+                },
+                mapOption: {
+                    backgroundColor: 'rgba(0,47,62,1)',
+                    visualMap: {
+                        show: false,
+                        min: 0,
+                        max: 100000
+                    },
+                    series: [
+                        {
+                            type: 'map',
+                            map: 'world',
+                            left: 0,
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            environment: 'rgba(0,0,0,0)',
+                            boundingCoords: [
+                                [-180, 90],
+                                [180, -90]
+                            ],
+                            itemStyle: {
+                                normal: {
+                                    borderWidth: 6,
+                                    borderColor: 'rgb(0,232,232)',
+                                    areaColor:
+                                        {
+                                            type: 'linear',
+                                            x: 0,
+                                            y: 0,
+                                            x2: 0,
+                                            y2: 1,
+                                            colorStops: [{
+                                                offset: 0.2, color: 'rgb(0,48,62)' // 0% 处的颜色
+                                            }, {
+                                                offset: 0.8, color: 'rgba(0,179,188,0.8)' // 100% 处的颜色
+                                            }],
+                                            global: false // 缺省为 false
+                                        },
+                                    color: 'rgb(0,47,62)'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        methods: {
+            initMap() {
+                this.mapChart = echarts.init(document.createElement('canvas'), null, {
+                    width: 3086,
+                    height: 3048
+                });
+                this.myChart = echarts.init(document.getElementById("myChart"));
+                this.mapChart.setOption(this.mapOption);
+                this.option.globe.baseTexture = this.mapChart
+                this.myChart.setOption(this.option);
+                this.$store.commit("setGeoChart", this.myChart)
+                let self = this
+                // 触发点击事件，根据3D地球上的散点改变对应仪表盘数据
+                this.myChart.on('click', (param) => {
+                    var routeData = []
+                    if(param.dataIndex % 2 == 0){
+                        routeData = self.backendData.map[self.startIndex + param.dataIndex / 2]
+                    }
+                    else{
+                        routeData = self.backendData.map[self.startIndex + (param.dataIndex - 1) /2]
+                    }
+                    self.routeCount.name = routeData.fromName + "\nto\n" + routeData.toName
+                    self.routeCount.value = routeData.routeCount
+                    self.$store.commit("setGaugeData", self.routeCount)
+                });
+            },
+            drawLine() {
+                clearInterval(this.timer)
+                let self = this;
+                this.backendData = this.$store.state.backendData
+                var num = 0
+                // 每次输出一条数据，自动定位
+                this.timer = setInterval(function () {
+                    var route = [];
+                    var scatterRoute = [];
+                    // 此处数据每5秒取一次，根据数据量除以5秒，平均每秒大概需要取多少数据
+                    var randomNumber = Math.ceil(Math.random() * Math.ceil(parseFloat(self.backendData.map.length / 5)))
+                    self.startIndex = num
+                    for (let i = 0; i < randomNumber; i++) {
+                        if (num < self.backendData.map.length) {
+                            for (var j = 0; j < 2; j++) {
+                                var scatterPin = {}
+                                if (j == 0) {
+                                    scatterPin.name = self.backendData.map[num].fromName
+                                }
+                                else {
+                                    scatterPin.name = self.backendData.map[num].toName
+                                }
+                                var scatter = self.backendData.map[num].coords[j]
+                                scatter.push(0)
+                                scatterPin.value = scatter
+                                scatterRoute.push(scatterPin)
+                            }
+                            // 初始化时，仪表盘显示的数据为第一条数据
+                            if(i == 0){
+                                self.routeCount.name = self.backendData.map[num].fromName + "\nto\n" + self.backendData.map[num].toName
+                                self.routeCount.value = self.backendData.map[num].routeCount
+                            }
+                            route.push(self.backendData.map[num].coords)
+                            num++
+                        }
+                    }
+                    // 存储仪表盘所需的数据
+                    self.$store.commit("setGaugeData", self.routeCount)
+                    // 将取到的数据进行赋值，这个数据只是在后台取到的数据的一部分
+                    if (route.length > 0) {
+                        self.routeData = route
+                        self.option.series[0].data = self.routeData
+                        self.option.series[1].data = scatterRoute
+                        // 定位
+                        self.option.globe.viewControl.targetCoord = self.routeData[0][0]
+                        self.myChart.setOption(self.option)
+                        self.$store.commit("setGeoChart", self.myChart)
+                    }
+                }, 2000)
+            }
+        }
+    }
+</script>
+<style scoped>
+    #myChart {
+        width: 100%;
+        height: 80%;
+        border: 2px solid royalblue;
+    }
+</style>
+```
+
+Gauge.vue
+
+```vue
+<template>
+    <div id="way-gauge"></div>
+</template>
+
+<script>
+    import echarts from 'echarts'
+
+    export default {
+        name: "Gauge",
+        mounted() {
+            this.initGauge()
+        },
+        data() {
+            return {
+                myChart: this.$store.state.gaugeChart,
+                color: ['#ff0090', '#626317', '#631643'],
+                option: {
+                    tooltip: {
+                        formatter: "{a} <br/>{c} {b}"
+                    },
+                    toolbox: {
+                        show: true,
+                        feature: {
+                            mark: {show: true},
+                            restore: {show: true},
+                            saveAsImage: {show: true}
+                        }
+                    },
+                    graphic: {
+                        elements: [
+                            {
+                                type: 'image',
+                                style: {
+                                    image: require('../static/img/center.png'),
+                                    width: 250,
+                                    height: 250
+                                },
+                                left: 'center',
+                                top: 'center'
+                            }
+                        ]
+                    },
+                    series: [
+                        {
+                            splitNumber: 13,
+                            axisLine: {
+                                // 坐标轴线
+                                show: false,
+                                lineStyle: {
+                                    color: [[1, 'black']],
+                                    width: 100,
+                                    shadowBlur: 10
+                                }
+                            },
+                            splitLine: {
+                                length: 10,
+                                lineStyle: {
+                                    color: 'rgb(0, 187, 204)'
+                                }
+                            },
+                            detail: {
+                                show: false
+                            }
+                        },
+                        {
+                            splitNumber: 52,
+                            axisLine: {
+                                lineStyle: {
+                                    color: [[1, 'rgb(0, 187, 204)']],
+                                    width: 10,
+                                }
+                            },
+                            splitLine: {
+                                length: 10,
+                                lineStyle: {
+                                    color: 'black',
+                                    width: 4
+                                }
+                            },
+                            detail: {
+                                show: false
+                            }
+                        },
+                        {
+                            splitNumber: 0,
+                            axisLine: { // 坐标轴线
+                                lineStyle: {
+                                    color: [[1, 'rgb(0, 187, 204)']],
+                                    width: 2
+                                }
+                            },
+                            splitLine: { // 分隔线
+                                show: false
+                            },
+                            detail: {
+                                show: false
+                            }
+                        },
+                        {
+                            splitNumber: '22',
+                            title: {
+                                offsetCenter: ['0', '0'],
+                                textStyle: {
+                                    fontWeight: 'bolder',
+                                    fontStyle: 'italic',
+                                    fontSize: '10',
+                                    color: '#fff',
+                                    shadowColor: '#fff', //默认透明
+                                    shadowBlur: 10
+                                }
+                            },
+                            max: 66,
+                            axisLine: {
+                                lineStyle: {
+                                    color: [[0, '#ff0090'], [1, '#631643']],
+                                    width: 25
+                                }
+                            },
+                            splitLine: {
+                                length: 25,
+                                lineStyle: {
+                                    color: 'black',
+                                    width: 8
+                                }
+                            },
+                            detail: {
+                                show: true,
+                                offsetCenter: [0, '80%'],
+                            },
+                            data: [0]
+                        }
+                    ]
+                }
+            }
+        },
+        methods: {
+            initGauge() {
+                for (var i = 0; i < this.option.series.length; i++) {
+                    this.option.series[i].type = 'gauge';
+                    this.option.series[i].axisTick = {show: false};
+                    this.option.series[i].axisLabel = {show: false};
+                    this.option.series[i].pointer = {show: false};
+                    if (i == 3) {
+                        this.option.series[i].data = [0]
+                        this.option.series[i].axisLabel.show = true
+                    }
+                    // 设置仪表盘各层的大小
+                    let radius = [100, 97, 94, 91]
+                    for (let seriesNum = 0; seriesNum < this.option.series.length; seriesNum++) {
+                        this.option.series[seriesNum].radius = radius[seriesNum] + '%'
+                    }
+                }
+                this.myChart = echarts.init(document.getElementById("way-gauge"));
+                this.myChart.setOption(this.option);
+                this.$store.commit("setGaugeChart", this.myChart)
+            }
+        },
+        computed: {
+            // 作为数据变化监听对象
+            gaugeData() {
+                // 此处gaugeData是一个对象，只使用gaugeData是监听不出来的，需要深入监听或者转字符串
+                return JSON.stringify(this.$store.state.gaugeData)
+            }
+        },
+        watch: {
+            // 数据监听是根据值的变化
+            gaugeData: function () {
+                var val = this.$store.state.gaugeData
+                var routeCount = []
+                routeCount.push(val)
+                this.option.series[3].data = routeCount
+                // 当取得的数据的值大于仪表盘最大值，重新设置最大值
+                if (val.value > this.option.series[3].max) {
+                    // 仪表盘分割成22刻度，所以最大值需要是22的倍数，不然刻度出现小数
+                    this.option.series[3].max = (parseInt(val.value / 22) + 1) * 22
+                }
+                // 根据得到的数据使仪表盘的刻度变颜色，根据数据除以最大值得到变色的区域
+                this.option.series[3].axisLine.lineStyle.color = [[parseFloat(val.value / this.option.series[3].max), '#ff0090'], [1, '#631643']];
+                this.myChart.setOption(this.option);
+            }
+        }
+    }
+</script>
+
+<style scoped>
+    #way-gauge {
+        width: 100%;
+        height: 30%;
+        border: 2px solid royalblue;
+    }
+</style>
+```
+

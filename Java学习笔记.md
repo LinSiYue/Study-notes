@@ -752,3 +752,18 @@ public static int[] RadixSort(int[] array) {
 
 基数排序有两种方法：
 MSD 从高位开始进行排序 LSD 从低位开始进行排序
+
+### 11、比较器
+
+代码示例：
+
+```java
+List<CityCount> list = new ArrayList<CityCount>(cityCountMap.values());
+Collections.sort(list, new Comparator<CityCount>() {
+    public int compare(CityCount cityCount1,
+                       CityCount cityCount2) {
+        return (cityCount2.getNum() - cityCount1.getNum());
+    }
+});
+```
+

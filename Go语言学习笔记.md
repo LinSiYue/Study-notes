@@ -1131,3 +1131,509 @@ n1, _ = strconv.ParseInt(s3, 10, 64)
      }
      ```
 
+## 十五、协程goroutine
+
+1. 协程介绍
+
+   * Go协程（Goroutine）是与其他函数或方法同时运行的**函数或方法**。可以认为Go协程是轻量级的线程。
+   * 一个线程中可开启多个协程。如何做到单线程并发？并发 = 切换任务+保存状态，只要找到一种方案，能够在两个任务之间切换执行并且保存状态，那就可以实现单线程并发。
+   * 协程做到单线程下实现并发，通过上下文保存状态，然后切换协程执行，由于切换时间很短，看起来就是并发执行。
+   * 协程的栈，go采用了动态扩张收缩的策略：初始化为2KB，最大可扩张到1GB。
+   
+2. 协程和线程
+   
+   * 线程是有固定的栈的，基本都是2MB，当然，不同系统可能大小不太一样，但是的确都是固定分配的。这个栈用于保存局部变量，用于在函数切换时使用；协程的栈，go采用了动态扩张收缩的策略：初始化为2KB，最大可扩张到1GB。
+   
+   * 每个线程都有一个id，这个在线程创建时就会返回，所以可以很方便的通过id操作某个线程。但是在goroutine内没有这个概念，防止被滥用，所以你不能在一个协程中杀死另外一个协程，编码时需要考虑到协程什么时候创建，什么时候释放。
+   
+3. goruntine调度：
+
+   go调度里面有三个角色：三角形M代表内核线程，正方形P代表上下文，圆形G代表协程。一个M对应一个P，一个P下面挂多个G，但一个时候只有一个G在跑，其余都是放入等待队列，等待下一次切换时使用。
+
+   * G0进入阻塞，那么P会转移到另外一个内核线程M1（此时还是1对1）。当syscall返回后，需要抢占一个P继续执行，如果抢占不到，G0挂入全局就绪队列runqueue，等待下次调度，理论上会被挂入到一个具体P下面的就绪队列runqueu（区别于全局runqueue）。
+
+     ![goroutine3](http://vinllen.com/content/images/2018/goroutine/goroutine3.jpg)
+
+   * 假如一个P0下面的所有G都跑完了，这时候会从别的P1下面就绪队列抢占G进行运行，个数为P1就绪队列的一半。
+
+   ![goroutine4](http://vinllen.com/content/images/2018/goroutine/goroutine4.jpg)
+
+4. Go协程优点
+
+   * 与线程相比，Go协程的开销非常小。Go协程的堆栈大小只有几kb，它可以根据应用程序的需要而增长和缩小，而线程必须指定堆栈的大小，并且堆栈的大小是固定的。
+   * Go协程被多路复用到较少的OS线程。在一个程序中数千个Go协程可能只运行在一个线程中。如果该线程中的任何一个Go协程阻塞（比如等待用户输入），那么Go会创建一个新的OS线程并将其余的Go协程移动到这个新的OS线程。所有这些操作都是 runtime 来完成的，我们只需要利用 Go 提供的简洁的 API 来处理并发就可以了。
+   * Go 协程之间通过信道（channel）进行通信。信道可以防止多个协程访问共享内存时发生竟险（race condition）。信道可以想象成多个协程之间通信的管道。
+
+5. Go 协程的特点
+
+   * 有独立的栈空间
+
+   * 共享程序堆空间
+
+   * 调度由用户控制
+
+   * 协程是轻量级的线程
+
+6. Go协程的使用
+
+   - 当创建一个Go协程时，创建这个Go协程的语句立即返回。与函数不同，程序流程不会等待Go协程结束再继续执行。程序流程在开启Go协程后立即返回并开始执行下一行代码，忽略Go协程的任何返回值。
+   - 在主协程存在时才能运行其他协程，主协程终止则程序终止，其他协程也将终止。
+
+   注：goroutine 中使用 recover解决协程中出现 panic，会导致程序崩溃。
+
+   ```go
+   import (  
+       "fmt"
+   )
+   
+   func hello() {  
+       fmt.Println("Hello world goroutine")
+   }
+   func main() {  
+       go hello()
+       fmt.Println("main function")
+   }
+   // 输出：
+   // main function
+   ```
+
+   * 用WaitGroup使主协程等待其他协程执行完再结束
+
+   ```go
+   import (
+   	"fmt"
+   	"sync"
+   	"time"
+   )
+   
+   func numbers() {
+   	for i := 1; i <= 5; i++ {
+   		time.Sleep(250 * time.Millisecond)
+   		fmt.Printf("%d ", i)
+   	}
+   }
+   func alphabets() {
+   	for i := 'a'; i <= 'e'; i++ {
+   		time.Sleep(250 * time.Millisecond)
+   		fmt.Printf("%c ", i)
+   	}
+   }
+   
+   func main() {
+   	var wg sync.WaitGroup
+       // 告诉主协程有2个协程要执行
+   	wg.Add(2)
+   	go func() {
+   		numbers()
+           // 执行完协程数就-1
+   		wg.Done()
+   	}()
+   	go func() {
+   		alphabets()
+   		wg.Done()
+   	}()
+       // 等待所有协程执行完毕
+   	wg.Wait()
+   	fmt.Println("main")
+   }
+   // 输出：
+   // 1 a 2 b 3 c 4 d e 5 main
+   ```
+
+## 十六、channel
+
+1. 使用channel原因，先介绍互斥锁
+
+   ```go
+   var (
+   	s = 0
+   	n = 0
+   	lock sync.Mutex
+   )
+   
+   func sum1(a int){
+   	s+=a
+       fmt.Println("a=", a)
+       fmt.Println(s)
+   }
+   
+   func sum2(a int){
+   	lock.Lock()
+   	defer lock.Unlock()
+   	s+=a
+   	n++
+   	fmt.Println("a=", a)
+       fmt.Println(s)
+   }
+   func main() {
+       // 这样写的时候，s是混乱的
+   	/*for i:=0;i<100;i++{
+   		go sum1(i)
+   	}
+   	time.Sleep(time.Second*2)*/
+       
+       // 执行协程加了锁，需要当前协程结束，才会获得锁，下一个协程执行，
+       // 但是循环一直在走，所以并不是从0一直加到99，
+       // 而是当协程开始时，i计算到哪里，就加那个i。
+       for i:=0;i<100;i++{
+   		go sum2(i)
+   	}
+   	for{
+   		if n == 100{
+   			break
+   		}
+   	}
+   }
+   // 输出：
+   // a= 1
+   // 1
+   // a= 28
+   // 29
+   // a= 38
+   // 67
+   // a= 39
+   // 106
+   // ...
+   ```
+
+   但是加锁就是要等待，就会影响效率，所以这里需要用到channel。
+
+2. channel的基本介绍
+
+   - channel 本质就是一个数据结构-队列。
+   - 数据是先进先出【FIFO : 先进先出】。
+   - 线程安全，多 goroutine 访问时，不需要加锁，就是说 channel 本身就是线程安全的。
+   - channel 有类型的， string类型 的 channel 只能存放 string 类型数据。
+   - channel是有大小的，数据放满之后，就不能放入了，需要取出之后才能再放入。
+   - 在没有使用协程的情况下，如果 channel 数据取完了，再取，就会报 dead lock。
+   - channel是引用类型。
+   - channel 必须初始化才能写入数据, 即 make 后才能使用。
+
+3. channel声明
+
+   ```go
+   // var 变量名 chan 数据类型
+   var intChan chan int
+   intChan = make(chan int, 3)
+   
+   fmt.Printf("intChan 的值=%v intChan 本身的地址=%p\n", intChan, &intChan) // intChan 的值=0xc000092000 intChan 本身的地址=0xc00008e018
+   
+   fmt.Printf("channel len= %v cap=%v \n", len(intChan), cap(intChan)) // channel len= 0 cap=3
+   ```
+
+4. 向channel写入和取出数据
+
+   ```go
+   var intChan chan int
+   intChan = make(chan int, 3)
+   
+   // 向管道写数据
+   intChan<- 10
+   
+   num := 211
+   intChan <- num
+   
+   intChan <- 50
+   
+   fmt.Printf("channel len= %v cap=%v \n", len(intChan), cap(intChan)) // channel len= 3 cap=3
+   
+   // 从管道取数据
+   num2 := <- intChan
+   num3 := <- intChan
+   num4 := <- intChan
+   num5 := <- intChan // 报错deadlock!
+   ```
+
+## 十七、Go并发原理
+
+1. 并发和并行
+
+   * 并发：两个或两个以上的任务在一段时间内被执行。这些任务可能同时执行，也可能不是，我们只关心在一段时间内，哪怕是很短的时间（一秒或者两秒）是否执行解决了两个或两个以上任务。
+   * 并行：两个或两个以上的任务在同一时刻被同时执行。
+
+2. Go的CSP并发模型
+
+   * Go实现了两种并发形式：多线程共享内存和CSP并发模型。
+
+   * CSP并发模型：不同于传统的多线程通过共享内存来通信，CSP讲究的是“以通信的方式来共享内存”。“不要以共享内存的方式来通信，相反，要通过通信来共享内存。”
+   * Go的CSP并发模型，是通过goroutine和channel来实现的。
+   * 对线程来说，有三种映射（用户线程与内核线程的因素）模型：
+     - 一对一模型（1:1）。一个用户线程映射到一个内核线程，用户线程在存活期都会绑定到一个内核线程，一旦退出，2个线程都会退出。优点是实现了真正的并发，多个线程同时跑在不同的CPU上；缺点是，如果用户线程起多了，内核线程肯定不够用，那么就需要切换，涉及到上下文的切换，代价比较大。
+     - 多对一模型（M:1）。多个用户线程映射到一个内核线程。优点是，多个用户线程切换比较快，不需要内核线程上下文切换；缺点是，如果一个线程阻塞了，那么映射到同一个内核线程的用户线程将都无法运行。
+     - **多对多模型（M:N）**。综合以上两种模型，go采用的就是这种。Go线程实现模型MPG。
+
+## 十八、反射
+
+1. 介绍
+
+   * 反射可以在运行时动态获取变量的各种信息, 比如变量的类型(type)，类别(kind)；如果是结构体变量，还可以获取到结构体本身的信息(包括结构体的字段、方法)。
+   * 通过反射，可以修改变量的值，可以调用关联的方法。
+   * 使用反射，需要 import (“reflect”)。
+   * Type： 类型用来表示一个go类型。
+     在调用有分类限定的方法时，应先使用Kind方法获知类型的分类。调用该分类不支持的方法会导致运行时的panic。Kind是一个大的分类，比如定义了一个Person类，它的Kind就是struct 而Type的名称是Person。
+   * Value： 为go值提供了反射接口。
+     在调用有分类限定的方法时，应先使用Kind方法获知该值的分类。调用该分类不支持的方法会导致运行时的panic。Value类型的零值表示不持有某个值。零值的IsValid方法返回false，其Kind方法返回Invalid，而String方法返回""，所有其它方法都会panic。绝大多数函数和方法都永远不返回Value零值。如果某个函数/方法返回了非法的Value，它的文档必须显式的说明具体情况。如果某个go类型值可以安全的用于多线程并发操作，它的Value表示也可以安全的用于并发。
+   * 变量、interface{} 和 reflect.Value 是可以相互转换的。
+
+2. API
+
+   ```go
+   // ValueOf返回一个初始化为i接口保管的具体值的Value，ValueOf(nil)返回<invalid reflect.Value>。
+   func ValueOf(i interface{}) Value
+   
+   // TypeOf返回接口中保存的值的类型，TypeOf(nil)会返回nil。
+   func TypeOf(i interface{}) Type
+   
+   // 返回v持有的值的类型的Type表示。 其中Value可以获取到Type ,value操作的是指定的数据值其中包含数据的类型和具体的值，Type操作的是数据的类型结构，如：属性。
+   func (v Value) Type() Type
+   
+   // 返回v持有的值的类型的分类类型。 其中Value可以获取到Kind，如：指针。
+   func (v Value) Kind() Type
+   
+   // Elem返回v持有的接口保管的值的Value封装，或者v持有的指针指向的值的Value封装。如果v持有的值为nil，会返回panic: reflect: call of reflect.Value.Elem on zero Value。这个是Value的Elem方法，通常用这个方法获取数值类型的指针指向的数值。如ValueOf取到指针的值是个地址，指针地址的Elem就是地址对应的值了。
+   func (v Value) Elem() Value
+   
+   // 返回索引序列指定的嵌套字段的类型，等价于用索引中每个值链式调用本方法，如非结构体将会panic。
+   func (Type) Field(i int) StructField
+   
+   // 示例：
+   ptrValueOfI := reflect.ValueOf(i)
+   ptrTypeOfI := reflect.TypeOf(i)
+   valueOfI := ptrValueOfI.Elem()
+   
+   valueOfI.SetInt(1000)
+   
+   fmt.Println(ptrValueOfI)
+   fmt.Println(ptrValueOfI.Kind())
+   fmt.Println(ptrTypeOfI)
+   fmt.Println(ptrValueOfI.Elem())
+   fmt.Println(ptrValueOfI.Type())
+   // 输出：
+   // 0xc00000a0b8
+   // ptr
+   // *int
+   // 1000
+   // *int
+   // 1000
+   ```
+
+3. 反射的使用
+
+   * 基本类型的值修改
+
+     ```go
+     import (
+     	"fmt"
+     	"reflect"
+     )
+     
+     func testBasic(i interface{}){
+     	//i实际是一个指针
+     	ptrValueOfI := reflect.ValueOf(i)
+     	fmt.Println(ptrValueOfI.Kind())
+     	//获取指针指向的真正的值
+     	valueOfI := ptrValueOfI.Elem()
+     	//为其更改值
+     	valueOfI.SetInt(1000)
+     }
+     
+     func main() {
+     	n:=1
+     	testBasic(&n)
+     	fmt.Println(n)
+     }
+     ```
+
+   * struct类型的属性修改
+
+     ```go
+     import (
+     	"fmt"
+     	"reflect"
+     )
+     
+     type Student struct{
+     	Name string
+     	Age int64
+     }
+     
+     func test(i interface{}) {
+     	valueOfI := reflect.ValueOf(i).Elem()
+     	typeOfI := valueOfI.Type()
+         
+     	if typeOfI.Kind() != reflect.Struct {
+     		fmt.Println("except struct")
+     		return
+     	}
+         
+     	fmt.Println(reflect.TypeOf(i))
+     	fmt.Println(reflect.ValueOf(i).Type())
+         
+     	numField := typeOfI.NumField()
+     	for i := 0; i < numField; i++ {
+     		field := typeOfI.Field(i)
+     		fileName := field.Name
+     		fmt.Println(fileName)
+     		if fileName == "Name" {
+     			valueOfI.Field(i).SetString("reece")
+     		}
+     		if fileName == "Age" {
+     			valueOfI.Field(i).SetInt(22)
+     		}
+     	}
+     }
+     
+     func main () {
+     	student := Student{Name:"Susan", Age: 20}
+     	test(&student)
+     	fmt.Println(student.Name)
+     }
+     
+     // 输出：
+     // *main.Student
+     // *main.Student
+     // Name
+     // Age
+     // reece
+     ```
+   
+   * 引用类型修改
+   
+     ```go
+     import (
+     	"fmt"
+     	"reflect"
+     )
+     
+     func testSlice(i interface{}) {
+     	valueOfI := reflect.ValueOf(i)
+     	fmt.Println(valueOfI.Kind())
+     	fmt.Println(valueOfI.Len())
+     	fmt.Println(valueOfI.Cap())
+     
+     	indexValue := valueOfI.Index(0)
+     	fmt.Println(indexValue)
+     	indexValue.SetInt(300)
+     }
+     
+     func main () {
+     	slice := make([]int, 10, 20)
+     
+     	slice[0] = 200
+     
+     	testSlice(slice)
+     	fmt.Println(slice[0])
+     }
+     
+     // 输出：
+     // slice
+     // 10
+     // 20
+     // 200
+     // 300
+     ```
+   
+   * Map类型修改值
+   
+     ```go
+     import (
+     	"fmt"
+     	"reflect"
+     )
+     
+     func test(i interface{}) {
+     	valueOfI := reflect.ValueOf(i)
+     
+     	lenOfI := valueOfI.Len()
+     	fmt.Println("len = ",lenOfI)
+     
+     	keysNum := valueOfI.MapKeys()
+     	for n := 0; n < len(keysNum); n++ {
+     		key := keysNum[n]
+     		value := valueOfI.MapIndex(key)
+     
+     		fmt.Println("key=",key," value=", value)
+     
+     		str := value.String()
+     		valueOfI.SetMapIndex(key,reflect.ValueOf(string(str + "2")))
+     	}
+     }
+     
+     func main() {
+     	m := make(map[int]string, 10)
+     
+     	m[0] = "zero"
+     	m[1] = "one"
+     	m[2] = "two"
+     
+     	test(m)
+     	fmt.Println(m)
+     }
+     
+     // 输出:
+     // key= 0  value= zero
+     // key= 1  value= one
+     // key= 2  value= two
+     // map[0:zero2 1:one2 2:two2]
+     ```
+   
+   * 结构体反射执行方法
+   
+     ```go
+     import (
+     	"fmt"
+     	"reflect"
+     )
+     
+     type Student struct {
+     	Name string
+     	Age  int
+     }
+     
+     func (s Student) Print() {
+     	fmt.Println("name=", s.Name, ";age=", s.Age)
+     }
+     
+     func (Student) Plus(a int, b int) int {
+     	return a + b
+     }
+     
+     func testMethod(i interface{}){
+         valueOfI := reflect.ValueOf(i).Elem()
+     	typeOfI := valueOfI.Type()
+     
+     	methodsNum := typeOfI.NumMethod()
+     
+     	for n := 0; n < methodsNum; n++ {
+     		method := typeOfI.Method(n)
+     		methodName := method.Name
+     		if methodName == "Plus" {
+     			m := valueOfI.MethodByName(methodName)
+     			args := make([]reflect.Value, 2)
+     			args[0] = reflect.ValueOf(78)
+     			args[1] = reflect.ValueOf(80)
+     			res := m.Call(args)
+     			for j := 0; j < len(res); j++ {
+     				fmt.Println(methodName," ivoke result", j+1, " : ", res[j].Int())
+     			}
+     		}
+     	}
+     }
+     
+     func main() {
+     	stu := Student{Name: "susan", Age: 58}
+     	testMethod(&stu)
+     }
+     
+     // 输出：
+     // Plus  ivoke result 1  :  158
+     ```
+
+## 参考：
+
+* go中的协程与线程的区别:
+
+  http://vinllen.com/gozhong-de-xie-cheng-goroutineyu-xian-cheng-de-qu-bie/
+
+* golang基础教程:
+https://blog.csdn.net/weixin_37910453/article/details/87276411

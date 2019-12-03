@@ -1629,6 +1629,211 @@ n1, _ = strconv.ParseInt(s3, 10, 64)
      // Plus  ivoke result 1  :  158
      ```
 
+## 十九、tcp网络编程
+
+1. 介绍
+
+   * Golang 的主要设计目标之一就是面向大规模后端服务程序，网络通信这块是服务端 程序必不可少
+     也是至关重要的一部分。
+   * TCP socket 编程，是网络编程的主流。之所以叫 Tcp socket 编程，是因为底层是基于 Tcp/ip 协
+     议的. 比如: QQ 聊天。
+   * b/s 结构的 http 编程，我们使用浏览器去访问服务器时，使用的就是 http 协议，而 http 底层依
+     旧是用 tcp socket 实现的。比如: 京东商城。
+
+2. 协议
+
+   > OSI模型                      TCP/IP模型
+   >
+   > >应用层					应用层
+   > >
+   > >表示层					
+   > >
+   > >会话层
+   > >
+   > >传输层					传输层
+   > >
+   > >网络层					网络层
+   > >
+   > >数据链路层			链路层
+   > >
+   > >物理层
+
+   ![å¨è¿éæå¥å¾çæè¿°](https://img-blog.csdnimg.cn/2019030215571166.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl8zNzkxMDQ1Mw==,size_16,color_FFFFFF,t_70)
+
+3. 利用go的tcp网络编程Api实现一个简单的http服务器案例
+
+   ```go
+   import (
+   	"fmt"
+   	"net"
+   	"strconv"
+   )
+   
+   //用来转化int为string
+   type Int int
+   
+   func (i Int)toStr()string  {
+   	return strconv.FormatInt(int64(i),10)
+   }
+   
+   func testConn(conn net.Conn){
+   	addr := conn.RemoteAddr()
+   	fmt.Println(addr)
+   	//返回的http消息体
+   	var respBody  = "<h1>Hello World<h1>"
+   	i := (Int)(len(respBody))
+   	fmt.Println("响应的消息体长度："+i.toStr())
+   	//返回的http消息头
+   	var respHeader  = "HTTP/1.1 200 OK\n"+
+   	"Content-Type: text/html;charset=ISO-8859-1\n"+
+   	"Content-Length: "+i.toStr()
+   	//拼装http返回的消息
+   	resp := respHeader +"\n\r\n"+ respBody
+   	fmt.Println(resp)
+   	n, _ := conn.Write([]byte(resp))
+   	fmt.Printf("发送的数据数量：%s\n",(Int)(n).toStr())
+   }
+   
+   func main() {
+   	listen, err := net.Listen("tcp", "0.0.0.0:8888")
+   	if err !=nil{
+   		fmt.Println(err)
+   		return
+   	}
+   	defer listen.Close() //延时关闭 listen
+   
+   	for{
+   		conn, err := listen.Accept()
+   		if err !=nil{
+   			fmt.Println(err)
+   			continue
+   		}
+   		go testConn(conn)
+   	}
+   }
+   
+   // 输出：
+   // 打开127.0.0.1:8080页面出现“Hello World!”字样
+   /*控制台
+   127.0.0.1:59358
+   响应的消息体长度: 21
+   HTTP/1.1 200 OK
+   Content-Type: text/html;charset=ISO-8859-1
+   Content-Length: 21
+   
+   <h1>Hello World!</h1>
+   发送的数据数量:101
+   127.0.0.1:59359
+   响应的消息体长度: 21
+   HTTP/1.1 200 OK
+   Content-Type: text/html;charset=ISO-8859-1
+   Content-Length: 21
+   
+   <h1>Hello World!</h1>
+   发送的数据数量:101
+   */
+   ```
+
+## 二十、单元测试
+
+1. 测试
+
+   * 测试文件必须以*_test.go的格式命名；
+   * 测试方法以Test*命名
+   * 参数类型是t *testing.T
+
+   ```go
+   // call.go
+   package test
+   
+   //求平方
+   func pow(a int) int {
+   	return a*a
+   }
+   
+   func sub(a int) int  {
+   	return a-2
+   }
+   ```
+
+   ```go
+   // call_test.go
+   package test
+   
+   import "testing"
+   
+   func TestSub(t *testing.T) {
+   	i := sub(2)
+   	if i != 0{
+   		t.Fatal("sub(2) result is wrong")
+   	}
+   	t.Log("sub(2) result is success")
+   }
+   
+   func TestPow(t *testing.T)  {
+   	i := pow(2)
+   	if i != 4{
+   		t.Fatal("pow(2) result is wrong")
+   	}
+   	t.Log("pow(2) result is success")
+   }
+   ```
+
+   运行：
+
+   ```shell
+   // 进入目录，需要把测试文件和被测试文件写明
+   go test -v -cover call_test.go call.go 
+   ```
+
+2. 性能测试
+
+   * 以Benchmark*的格式命名方法
+
+   ```go
+   //benchmark_test.go
+   package cal
+   
+   import (
+       "fmt"
+       "testing"
+   )
+   
+   func BenchmarkHello(b *testing.B) {
+       for i := 0; i < b.N; i++ {
+       	fmt.Sprintf("hello")
+   	}
+   }
+   ```
+
+   运行：
+
+   ```shell
+   $go test -v -bench="." benchmark_test.go
+   goos: windows
+   goarch: amd64
+   BenchmarkHello-6        23078031                54.6 ns/op
+   PASS
+   ok      command-line-arguments  4.033s
+   ```
+
+   * 第 1 行 -bench="." 表示运行 benchmark_test.go 文件里面全部的测试，其实和-run一样【 -bench regexp 是可以接收一个正则，如果要运行所以的基准测试，请使用-bench. or -bench=.'.】
+   * 第 2 行 goos 表示系统是 windows
+   * 第 3 行 goarch 表示 操作系统构架是amd64
+   * 第 4 行 BenchmarkHello-6 表示 测试名称 ， 23078031测试的次数 ， 54.6 ns/op表示表示每一个操作耗费多少时间（纳秒）
+
+3. testing.B 提供了几种方法【testing.B拥有testing.T的全部接口】
+
+   | 方法 | 描述 |
+   | :----: | :----: |
+   | StartTimer() | 启动计时 |
+| StopTimer() | 停止计时 |
+   | ResetTimer | 重置计时 |
+   | SetBytes() | 设置处理字节数 |
+   | ReportAllocs() | 报告内存信息 |
+   | runN(n int) | 运行一个基准函数 |
+   
+
 ## 参考：
 
 * go中的协程与线程的区别:
@@ -1637,3 +1842,4 @@ n1, _ = strconv.ParseInt(s3, 10, 64)
 
 * golang基础教程:
 https://blog.csdn.net/weixin_37910453/article/details/87276411
+

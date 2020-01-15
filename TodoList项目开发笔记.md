@@ -67,7 +67,7 @@
      }
      ```
 
-   * 报错
+2. 报错
 
      ```
      Failed to load resource: the server responded with a status of 404 ()
@@ -100,3 +100,60 @@
 
      https://webpack.docschina.org/configuration/dev-server/#src/components/Sidebar/Sidebar.jsx
 
+## 二、初始化数据库
+
+在resources目录下添加文件
+
+* schema.sql
+
+  ```sql
+  DROP TABLE IF EXISTS `t_user`;
+  CREATE TABLE `t_user`(
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `user_name` VARCHAR(32) DEFAULT NULL ,
+    `pass_word` VARCHAR(16) DEFAULT NULL ,
+    `phone` VARCHAR(11) DEFAULT NULL ,
+    `roles` VARCHAR(11) DEFAULT NULL ,
+    `introduction` VARCHAR(32) DEFAULT NULL ,
+    `avatar` VARCHAR(255) DEFAULT NULL ,
+    PRIMARY KEY (`id`)
+  )
+  ```
+
+* data.sql
+
+  ```sql
+  INSERT INTO t_user VALUES (1, "Gold", "Lin123.", "13452220114", "editor", "I am an editor", "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif")
+  
+  INSERT INTO t_user VALUES (2, "Reece", "qq123.", "13452220114", "editor", "I am an editor", "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif")
+  
+  INSERT INTO t_user VALUES (3, "Zhang", "ww123.", "13452220114", "editor", "I am an editor", "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif")
+  
+  INSERT INTO t_user VALUES (4, "Lin", "zz123.", "13452220114", "editor", "I am an editor", "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif")
+  
+  INSERT INTO t_user VALUES (5, "Wang", "ss123.", "13452220114", "editor", "I am an editor", "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif")
+  
+  INSERT INTO t_user VALUES (6, "Tian", "dd123.", "13452220114", "editor", "I am an editor", "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif")
+  ```
+
+* 修改配置文件application-dev.yml
+
+  ```yml
+  server:
+    port: 8086
+  spring:
+    jpa:
+      generate-ddl: false # 修改
+      show-sql: true
+      hibernate:
+        ddl-auto: none # 修改
+    datasource:
+      continue-on-error: false
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/todolist?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=CONVERT_TO_NULL
+      username: root
+      password: ''
+      initialization-mode: ALWAYS # 修改
+  ```
+
+  

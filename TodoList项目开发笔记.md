@@ -76,7 +76,7 @@
      Access to XMLHttpRequest at 'http://localhost:8086/sockjs-node/info?t=1579069561892' from origin 'http://localhost:8087' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
      ```
 
-     ![1579069595190](C:\Users\LINRE\AppData\Roaming\Typora\typora-user-images\1579069595190.png)
+     ![1579069595190](https://github.com/LinSiYue/Study-notes/blob/master/img/todolist%E5%BC%80%E5%8F%91%E7%AC%94%E8%AE%B0/sockjs%20error.png?raw=true)
 
      解决：在vue.config.js中加入public，参考https://www.jianshu.com/p/147083b647ef
 

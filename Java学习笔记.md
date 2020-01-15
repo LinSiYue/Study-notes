@@ -389,7 +389,7 @@ public void quickSort(int left, int right, int[] array) {
 }
 ```
 #### 4.3 算法分析
-最佳情况：T(n) = O(nlogn)   最差情况：T(n) = O(n2)   平均情况：T(n) = O(nlogn)　
+最佳情况：T(n) = O(nlogn)   最差情况：T(n) = O(n^2)   平均情况：T(n) = O(nlogn)　
 
 ### 5、希尔排序（Shell Sort）
 
@@ -695,7 +695,7 @@ public static ArrayList<Integer> BucketSort(ArrayList<Integer> array, int bucket
 
 桶排序最好情况下使用线性时间O(n)，桶排序的时间复杂度，取决与对各个桶之间数据进行排序的时间复杂度，因为其它部分的时间复杂度都为O(n)。很显然，桶划分的越小，各个桶之间的数据越少，排序所用的时间也会越少。但相应的空间消耗就会增大。 
 
-最佳情况：T(n) = O(n+k)   最差情况：T(n) = O(n+k)   平均情况：T(n) = O(n2)　
+最佳情况：T(n) = O(n+k)   最差情况：T(n) = O(n+k)   平均情况：T(n) = O(n^2)　
 
 ### 10、基数排序（Radix Sort）
 
@@ -752,3 +752,18 @@ public static int[] RadixSort(int[] array) {
 
 基数排序有两种方法：
 MSD 从高位开始进行排序 LSD 从低位开始进行排序
+
+### 11、比较器
+
+代码示例：
+
+```java
+List<CityCount> list = new ArrayList<CityCount>(cityCountMap.values());
+Collections.sort(list, new Comparator<CityCount>() {
+    public int compare(CityCount cityCount1,
+                       CityCount cityCount2) {
+        return (cityCount2.getNum() - cityCount1.getNum());
+    }
+});
+```
+

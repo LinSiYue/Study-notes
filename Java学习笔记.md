@@ -270,7 +270,7 @@ public static int[] bubbleSort(int[] array) {
 
 #### 1.3 算法分析
 
-**最佳情况：**T(n) = O(n)   **最差情况：**T(n) = O(n2)   **平均情况：**T(n) = O(n2)
+**最佳情况：**T(n) = O(n)   **最差情况：**T(n) = O(n^2)   **平均情况：**T(n) = O(n^2)
 
 ### 2、选择排序（Selection Sort）
 
@@ -307,7 +307,7 @@ public static int[] selectionSort(int[] array) {
 
 #### 2.3 算法分析
 
-最佳情况：T(n) = O(n2)  最差情况：T(n) = O(n2)  平均情况：T(n) = O(n2)
+最佳情况：T(n) = O(n^2)  最差情况：T(n) = O(n^2)  平均情况：T(n) = O(n^2)
 
 ### 3、插入排序（Insertion Sort）
 
@@ -343,7 +343,7 @@ public static int[] insertionSort(int[] array) {
 }
 ```
 #### 3.3 算法分析
-最佳情况：T(n) = O(n)   最坏情况：T(n) = O(n2)   平均情况：T(n) = O(n2)
+最佳情况：T(n) = O(n)   最坏情况：T(n) = O(n^2)   平均情况：T(n) = O(n^2)
 
 ### 4、快速排序（Quick Sort）
 

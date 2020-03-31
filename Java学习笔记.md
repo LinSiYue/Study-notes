@@ -154,6 +154,8 @@ ReentrantLock reentrantLock =  new ReetrantLock();
 **轻量级锁**是指当锁是<u>偏向锁</u>的时候，<u>被另一个线程所访问</u>，偏向锁就会升级为轻量级锁，其他线程会通过自旋的形式尝试获取锁，不会阻塞，提高性能。
 **重量级锁**是指当锁为<u>轻量级锁</u>的时候，另一个线程虽然是自旋，但自旋不会一直持续下去，当<u>自旋一定次数的时候，还没有获取到锁，就会进入阻塞，该锁膨胀为重量级锁</u>。重量级锁会让其他申请的线程进入阻塞，性能降低。
 
+锁的升级叫做锁的膨胀，膨胀只能由低到高，最后重新回到偏向锁重新膨胀。
+
 #### 2.7自旋锁
 
 在Java中，自旋锁是指尝试获取锁的线程不会立即阻塞，而是采用**循环的方式去尝试获取锁**，这样的好处是<u>减少线程上下文切换的消耗，缺点是循环会消耗CPU</u>。
@@ -810,6 +812,10 @@ Java内存分配：
 4. 程序计数器
 5. 本地方法栈
 
+对象是怎么存储的：
+
+​	对象实例存储在堆空间，对象元数据存储在方法区（元数据区），对象的引用存储在栈空间。
+
 ### 3. GC算法和垃圾回收器
 
 * 常见的垃圾回收算法：标记-清除、复制、标记-压缩、分代收集。
@@ -903,3 +909,430 @@ Java内存分配：
   3. 方法区空间不足时；
   4. 通过Monitor GC后进入老年代的平均大小大于老年代的可用内存时。
   5. concurrent mode failure
+
+## 四、Redis
+
+### 1. 单线程Redis性能高
+
+* 基于内存
+
+   ![img](http://p3.pstatp.com/large/2dd480002f657a6d59e09) 
+
+  * 数据查询类场景：内存中有全量的数据，可以直接从内存中取得；
+  * 数据写入类场景：如果配置的是同步持久化，写入内存的同时，也会写入磁盘，性能有所降低，但是由于Redis使用的是IO多路复用，同时没有线程竞争，因此IO利用率很高。
+  * 数据写入类场景：如果配置的是异步持久化，写入内存成功，即响应成功，不用等待磁盘的写入，性能很高。
+
+* 单线程，多路IO复用
+
+  * 多线程存在线程竞争，且有锁的问题，多线程代码逻辑复杂，复杂的代码逻辑通常会带来一定的性能损耗。
+
+  * Redis虽然是单线程，但它的“IO多路复用”模型的IO利用率很高。是采用效率最高的epoll模式，单线程却实现了多客户端接入。将接入的客户端生成一个队列。
+
+     ![img](http://p9.pstatp.com/large/2dd450002f4f251ffa31a) 
+
+* 数据结构
+
+  * Redis全程采用了Hash结构，因此存取效率非常高；
+  * 对于数据的存储内容也进行了压缩，节省了空间占用，也减少了io带宽。
+
+## 五、异常和错误
+
+Error：程序中发生严重的错误Error，无法处理的错误，只能事先避免；如内存溢出等。
+
+Exception：异常发生后程序员可以通过代码的方式纠正，使程序继续运行，是必须要处理的。
+
+### 1. 运行时异常
+
+* 类型转换异常（ClassCastException）
+* 数组下标越界（IndexOutofBoundsException）
+* 空指针（NullPointerException）
+* 数字格式异常（NumberFormatException）
+* 算术运算异常 （ArithmeticException）
+* 非法参数异常 （IllegaArguementException）
+
+### 2. 编译时异常
+
+* 输入输出异常（IOException）
+* 文件未找到（FileNotFoundException）
+* 时间格式化异常（ParseException）
+* 指定类不存在（ClassNotFoundException）
+
+## 六、注解
+
+### 1. @ComponentScan
+
+```java
+@Configuration
+// 排除扫包; 包含包includeFilters
+//@ComponentScan(value = "com.lsy",excludeFilters = {
+//    @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = {Controller.class})
+//})
+// 可以配置多个扫描规则
+@ComponentScans(value = {
+//    @ComponentScan(value = "com.lsy",excludeFilters = {
+//    	@ComponentScan.Filter(type = FilterType.ANNOTATION, classes = {Controller.class}),
+//      @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {CarService.class})
+//    }),
+    // 使用includeFilters时，需要禁用默认扫描规则才能生效
+	@ComponentScan(value = "com.lsy",includeFilters = {
+//      @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = {Controller.class})
+        @ComponentScan.Filter(type = FilterType.CUSTOM, classes = {MyTypeFilter.class})
+    }, useDefaultFilters = false)
+})
+// @ComponentScan value：指定要扫描的包
+// excludeFilters = Filter[]：指定扫描的时候按照什么规则排除那些组件
+// includeFilters = Filter[]：指定扫描的时候只需要包含哪些组件
+// FilterType.ANNOTATION：按照注解的形式
+// FilterType.ASSIGNABLE_TYPE：按照给定的类型
+// FilterType.ASPECTJ：使用ASPECTJ表达式
+// FilterType.REGEX：正则表达式
+// FilterType.CUSTOM：正则表达式
+```
+
+### 2.@Bean
+
+```java
+// 给容器中注册一个Bean，类型为返回值的类型，id默认是方法名
+@Bean(value = "car")
+```
+
+### 3.@Scope
+
+```java
+/**
+     * @Scope默认单例
+     * ConfigurableBeanFactory
+     * singleton：单例（默认值），IOC容器启动会调用方法创建对象放到IOC容器中，以后每次获取就是
+     *            直接从容器（map.get()）中拿
+     * prototype：多例，IOC容器启动不会调用方法创建对象放在容器中，每次获取的时候才会调用方法
+     *            创建对象
+     * request：同一次请求创建同一个实例
+     * session：同一个session创建一个实例
+*/
+@Scope("prototype")
+```
+
+### 4. @Lazy
+
+```java
+/**
+     *  Lazy + 单例，容器只在获取的时候才调用方法创建对象，而且只创建一次
+     * @return
+*/
+@Lazy
+```
+
+### 5. *@Conditional
+
+```java
+// 条件注解，根据条件类返回对应的类
+// 条件类继承Condition，实现matches
+@Conditional({LinuxCondition.class})
+```
+
+### 6. *@Import
+
+```java
+/**
+	*  给容器中注册组件：
+	*  1、包扫描+组件标注注解（@Controller/@Service/@Repository
+	/@Component）[自己写的类]
+	*  2、@Bean[导入的第三方包里面的组件]
+	*  3、@Import[快速给容器中导入一个组件]
+	*    1)、@Import（要导入到容器中的组件）；容器中就会自动注册这个组件，id默认是全类名
+	*    2)、ImportSelector：返回需要导入的组件的全类名数组；
+		 3)、ImportBeanDefinitionRegistrar：手动注册bean到容器中
+*/
+@Import
+```
+
+给容器添加Bean的几种方式：
+	给容器中注册组件：
+
+1. 包扫描+组件标注注解（@Controller/@Service/@Repository/@Component）[自己写的类]
+
+2. @Bean[导入的第三方包里面的组件]
+
+3. @Import[快速给容器中导入一个组件]
+   1)、@Import（要导入到容器中的组件）；容器中就会自动注册这个组件，id默认是全类名
+   2)、ImportSelector：返回需要导入的组件的全类名数组；
+   3)、ImportBeanDefinitionRegistrar：手动注册bean到容器中
+
+4. 使用Spring提供的FactoryBean（工厂Bean）；
+
+   1)、默认获取到的是工厂bean调用getObject创建的对象
+
+   2)、要获取工厂Bean本身，我们需要给id前面加一个&
+
+   ​		&colorFactoryBean
+
+### 7. Bean生命周期
+
+   * bean的创建---初始化---销毁过程；
+   * 容器管理bean的生命周期；
+   * 我们可以自定义初始化和销毁方法；容器在bean进行到当前生命周期的时候来调用我们自定义的初始化和销毁方法；
+     * 构造（对象创建）
+       * 单实例：在容器启动的时候创建对象
+       * 多实例：在每次获取的时候创建对象
+       
+     * BeanPostProcessor.postProcessBeforeInitalization
+     * 初始化：
+       
+       * 对象创建完成，并赋值好，调用初始化方法
+       
+     * BeanPostProcessor.postProcessAfterInitalization
+     * 销毁：
+	  * 单实例：容器关闭的时候
+       * 多实例：容器不会管理这个bean；容器不会调用销毁方法
+     1. 指定初始化和销毁方法；
+     
+        * 通过@Bean指定init-method和destroy-method
+        
+     2. 通过让Bean实现InitializingBean(定义初始化逻辑)
+        
+     * DisposableBean(定义销毁逻辑)
+       
+     3. 使用JSR250
+       
+        * @PostConstruct：在bean创建完成并且属性赋值完成；来执行初始化方法
+        
+        * @PreDestroy：在容器销毁bean之前通知我们进行清理工作
+         BeanPostProcessor【interface】
+     
+     4. 在bean初始化前后进行一些处理工作
+     
+        * postProcessBeforeInitialization：在初始化之前工作
+     * postProcessAfterInitalization：在初始化之后工作
+       
+        =>AnnotationConfigAppicationContext
+        
+        =>refresh
+        
+        =>finishBeanFactoryInitialization（初始化）=>getBean/createBean
+        
+        BeanPostProcessor原理：
+        
+        =>populateBean(给bean属性赋值)
+        
+        =>initializeBean(初始化)
+        
+        ​	【遍历得到容器中所有的BeanPostProcessor：挨个执行beforeInitialization，
+        
+        ​	一旦返回null，则跳出for循环，不会执行后面的
+        
+        ​	BeanPostProcessor.postProcessorsBeforeInitialization】
+        
+        ​	=>applyBeanPostProcessorBeforeInitialization
+        
+        ​	=>invokeInitMethods
+        
+        ​	=>applyBeanPostProcessorAfterInitialization
+        
+     5. Spring底层对BeanPostProcessor的使用：
+     
+        bean赋值，注入其他组件，@Autowired，生命周期注解功能，@Async，xxx BeanPostProcessor；
+     
+
+### 8. @Value和@PropertySource
+
+```java
+// 可以给实体类属性赋值
+@Value("张三")
+private String name;
+
+@Value("${person.age}")
+private Integer age;
+
+// 导入外部配置文件中的k/v保存到运行的环境变量中；加载完之后用${}取出配置变量
+@PropertySource(value={"classpath:/person.properties"})
+```
+
+### 9. @Autowired和@Qualifier
+
+```java
+// 默认按属性名装配
+@Autowired
+
+// 直接指定需要装配的组件的id，而不是使用属性名
+@Qualifier
+```
+
+* @Autowired：自动注入：
+
+​	1）、默认优先按照类型去容器中找对应的组件：applicationContext.getBean(CarDao.class);
+
+​	2）、如果找到多个相同类型的组件，再将属性的名称作为组件的id，而不是使用属性名
+
+​	3）、@Qualifier("carDao")：使用@Qualifier指定需要装配的组件的id，而不是使用属性名
+
+​	4）、自动装配默认一定要将属性赋值好，没有就报错
+
+​		可以使用@Autowired(required=false )
+
+​	5）、@Primary：让Spring进行自动装配的时候，默认使用首选的bean；
+
+​		也可以继续使用@Qualifier
+
+* @Autowired：构造器、参数、方法、属性；都是从容器中获取参数组件值
+
+  1）、标注在方法位置：@Bean+方法参数；参数从容器中获取参数组件的值
+
+  2）、标注在构造器上：如果组件只有一个有参构造器，这个有参构造器的@Autowired可以省略，参数位置的组件还是可以自动从容器中获取
+
+  3）、放在参数位置
+
+### 10. @Resource和@Inject
+
+Spring还支持使用@Resource(JSR250)和@Inject(JSR330)[java规范的注解]：
+
+* @Resource：
+
+  可以和@Autowired一样实现自动装配功能；默认是按照组件名称进行装配的；
+
+  没有能支持@Primary功能没有支持@Autowired(required=false);
+
+* @Inject：
+
+  需要导入javax.inject的包，和Autowired的功能一样。没有required=false的功能；
+
+@Autowired：Spring定义的，在Service调用的dao和直接获取的dao是同一个；@Resource和@Inject都是java规范。
+
+AutowiredAnnotationBeanPostProcessor
+
+### 11. Aware原理
+
+自定义组件想要使用Spring容器底层的一些组件（ApplicationContext，BeanFactory，xxx）
+
+自定义组件实现xxxAware；在创建对象的时候，会直接调用接口规定的方法注入相关组件；Aware；
+
+把Spring底层一些组件注入到自定义的Bean中；
+
+xxxAware；功能使用xxxProcessor；
+
+​	ApplicationContextAware ==> ApplicationContextAwareProcessor；
+
+### 12. Profile
+
+Profile：
+
+​	Spring为我们提供的可以根据当前环境，动态的激活和切换一系列组件的功能；
+
+开发环境、测试环境、生产环境；
+
+数据源：（/A）（/B）（/C）
+
+```java
+@Configuration
+public class MainConfigOfProfile {
+	
+    @Profile("test")
+    @Bean("testDataSource")
+    public DataSource dataSourceTest() throws Exception {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser("root");
+        dataSource.setPassword("123456");
+        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/test");
+        dataSource.setDriverClass("com.mysql.jdbc.Driver");
+        return dataSource;
+    }
+    
+    @Profile("dev")
+    @Bean("devDataSource")
+    public DataSource dataSourceDev() throws Exception {
+        ...
+    }
+    
+    @Profile("prod")
+    @Bean("prodDataSource")
+    public DataSource dataSourceProd() throws Exception {
+        ...
+    }
+    
+}
+```
+
+@Profile：指定组件在哪个环境的情况下才能被注册到容器中，任何环境下都能注册这个组件
+
+1. 使用命令行动态参数：在虚拟机参数位置加载
+
+   ```shell
+   -Dspring.profiles.active=test
+   ```
+
+2. 使用代码
+
+   * 创建一个applicationContext
+   * 设置需要激活的环境
+   * 注册主配置类
+   * 启动刷新容器
+
+* 加了标识的bean，只有这个环境被激活的时候才能注册到容器中，默认是default环境
+
+* 写在配置类上，只有是指定的环境的时候，整个配置类里面的所有配置才能开始生效
+* 没有标注环境标识的bean在任何环境下都是加载的
+
+### 13. AOP
+
+1、导入aop模块；Spring AOP(spring-aspects)
+
+2、定义一个业务逻辑类（MathCalculator）；在业务逻辑运行的时候将日志进行打印（方法之前、方法运行结束、方法出现异常等等）
+
+3、定义一个日志切面类（LogAspects）；切面类里面的方法需要动态感知MathCalculator.div运行到哪里然后执行。
+
+​	通知方法：
+
+* 前置通知：logStart，在目标方法运行之前运行
+* 后置通知：logEnd，在目标方法运行结束之后运行
+* 返回通知：logReturn，在目标方法正常返回之后运行
+* 异常通知：logException，在目标方法出现异常之后运行
+* 环绕通知：动态代理，手动推进目标方法运行（joinPoint.procced()）
+
+4、给切面类的目标方法标注何时何地运行（通知注解）
+
+5、将切面类和业务逻辑类（目标方法所在类）都加入到容器中
+
+6、必须告诉Spring哪个是切面类（给切面类标注一个注解@Aspect）
+
+7、给配置类中加@EnableAspectJAutoProxy【开启基于注解的aop模式】
+
+​	在Spring中很多的@Enablexxx
+
+```java
+@Aspect
+public class LogAspects {
+
+    @Pointcut("execution(public int com.lsy.aop.MathCalculator.*(..))")
+    public void pointCut() {
+
+    }
+    
+    // JoinPoint可以拿到方法名和参数，要在第一个参数位置，否则失效
+    @Before("pointCut()")
+    public void logStart(JoinPoint joinPoint){
+        Object[] args = joinPoint.getArgs();
+        System.out.println(joinPoint.getSignature().getName() + "运行。。。参数:" + Arrays.asList(args));
+    }
+
+    @After("com.lsy.aop.LogAspects.pointCut()")
+    public void logEnd(JoinPoint joinPoint){
+        System.out.println(joinPoint.getSignature().getName() + "结束。。。");
+    }
+
+    @AfterReturning(value = "pointCut()", returning = "result")
+    public void logReturn(JoinPoint joinPoint, Object result){
+        System.out.println(joinPoint.getSignature().getName() + "正常返回。。。运行结果是：" + result);
+    }
+
+    @AfterThrowing(value = "pointCut()", throwing = "exception")
+    public void logException(JoinPoint joinPoint, Exception exception){
+        System.out.println(joinPoint.getSignature().getName() + "异常。。。异常欣喜：" + exception);
+    }
+}
+```
+
+三步：
+
+* 将业务逻辑组件和切面类都加入到容器中；告诉Spring哪个是切面类（@Aspect）
+* 在切面类上的每一个通知方法上标注通知注解，告诉Spring何时何地运行（切入点表达式）
+* 开启基于注解的aop模式，@EnableAspectJAutoProxy
+

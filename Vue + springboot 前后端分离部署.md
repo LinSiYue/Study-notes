@@ -1,6 +1,38 @@
 # Vue + springboot 前后端分离部署
 
+版本问题，卸载问题
+
+升级途中遇到的问题:
+
+\#### 1.$npm uninstall vue-cli -g   //卸载vue-cli旧版本
+
+\#### 2.$npm install -g @vue/cli   //安装新版本
+
+\#### 3.$npm vue -V         //2.9.6,我差，根本没删除掉！
+
+解决:
+
+原因: npm install -g @vue/cli 后， 我发现在C:\Users\Administrator\AppData\Roaming\npm\node_modules目录下多了一个@vue的文件夹。也就是说全局安装的文件都在这里！ 同时，npm uninstall vue-cli -g 也是删除的这里面的文件。
+
+处理：以我自己的安装目录为例子，我的node安装在D:\Develo\中
+
+1. 打开环境变量>在用户变量中找到path,这里的的路径必须和你电脑 npm 的全局安装路径对应，
+
+原来我的之前路径写错了，所以就默认帮我装在C:\Users\Administrator\AppData\Roaming\npm中！ 现在我决定指定这个路径在D:\Develo\nodejs\node_global中（这里的node_global文件夹是我自己新建的）
+
+2. 接下来还有一点！系统变量中的NODE_PATH的路径必须和你是 npm 全局安装路径下的 node_modules,所以我这里填写的是D:\Develo\nodejs\node_global\node_modules
+
+3. 设置 npm 的默认安装路:
+
+```
+$npm config set prefix "D:\Develo\nodejs\node_global" //这里的路径必须是上面path对应！
+
+$npm config set cache "D:\Develo\nodejs\node_cache" //---这里是我自定义的缓存路径，无关紧要
+```
+
 ## 一、vue-cli3.0以上打包部署
+
+* 部署到tomcat：
 
 1. 在根目录新建vue.config.js文件，配置如下：
 
@@ -58,9 +90,10 @@ module.exports = {
         // 自动启动浏览器
         open: false,
         proxy: {
+            // 此处若使用了nginx代理，可省略
             "/api": {
                 //代理路径 例如 https://baidu.com
-                target: "https://baidu.com",
+                target: "https://[ip]:[端口]",
                 // 将主机标头的原点更改为目标URL
                 changeOrigin: true,
                 ws: true,
@@ -85,9 +118,44 @@ localhost:8080/dist/index.html
 localhost:8080/dist/shopping
 ```
 
+* 部署到nginx：
+
+1. 与上面的差不多配置，在路径转发那块改为nginx代理
+
+2. npm run build打包
+
+3. 将dist中的文件
+
+4. 配置nginx.conf
+
+   ```conf
+   location / {
+   	root   html;
+   	index  index.html index.htm;
+   	try_files $uri $uri/ /index.html; // 解决路由问题
+   }
+   
+   // 此处/api为前端转发给后端时带的前缀
+   location /api {
+   	proxy_set_header Host $http_host;
+   	// 参数为[ip]:[port]/[打包到tomcat的包名]
+   	proxy_pass http://localhost:8080/freesay;
+   }
+   ```
+
 ## 二、vue打包之后遇到的问题
 
-* 如果用到了路由，路由不起作用，可以将路由mode:"history"去掉。
+* 如果用到了路由，路由不起作用，路由为mode:"history"。
+
+在nginx.conf文件中配置
+
+```conf
+location / {
+	root   html;
+	index  index.html index.htm;
+	try_files $uri $uri/ /index.html; // 解决路由问题
+}
+```
 
 ## 三、springboot打包部署
 

@@ -1,0 +1,18 @@
+Idea:
+    ctrl+alt+n：快速创建对象
+    ctrl+alt+a：多行操作
+    ctrl+n：搜索类或接口
+    ctrl+h：查看类的子类
+
+itjc8.com_VWLYWwKO6iMWA*V!
+
+
+windows命令：
+netstat -ano：查看端口占用
+tasklist |findstr <PID>：查看端口被什么程序占用
+taskkill /pid <pid> [-f]：结束进程
+
+
+linux:
+netstat -t：查看tcp连接的所有端口
+netstat -ntulp |grep 80：查看80端口

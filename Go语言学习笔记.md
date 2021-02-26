@@ -14,6 +14,133 @@
 
 3. go version查看版本
 
+
+
+【Linux
+
+​	Golang官网下载地址：https://golang.google.cn/dl/
+
+```powershell
+wget https://dl.google.com/go/go1.15.7.linux-amd64.tar.gz
+```
+
+​	或者到官网下载压缩包go1.15.7.linux-amd64.tar.gz
+
+```powershell
+# 解压，官网推荐路径
+tar -C /usr/local -zxvf  go1.11.5.linux-amd64.tar.gz
+
+# 添加go安装路径的bin目录/usr/loacl/go/bin到PATH变量中。添加到/etc/profile，需要root权限
+vi /etc/profile
+
+# 在最后一行添加
+export GOROOT=/usr/local/go
+export PATH=$PATH:$GOROOT/bin
+
+# 保存退出后source一下，更新配置文件
+source /etc/profile
+
+# 执行go version，如果出现版本号则表示配置完成。
+go version
+```
+
+```powershell
+# 运行go程序
+# 先配置go的工作路径GOPATH，编辑 ~/.bash_profile文件
+vi ~/.bash_profile
+
+# 在最后一行添加，$HOME/go为自己创建的工作路径
+export GOPATH=$HOME/go
+
+# 保存退出后source一下
+source ~/.bash_profile
+
+# 到工作目录下，创建.go文件
+vi hello.go
+
+# 编写代码
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Printf("hello, world\n")
+}
+
+# 保存退出，运行go run hello.go，一个目录只能有一个main入口
+go run hello.go
+```
+
+导依赖：
+
+```powershell
+# 开启modules
+go env -w GO111MODULE=on
+go env -w GOPROXY="https://mirrors.aliyun.com/goproxy/"
+
+# 在项目目录下，需要配置完GOPATH才可以
+go mod init
+# 或者
+go mod init [路径]
+
+# 在go.mod文件中配置依赖
+require (
+  github.com/apache/rocketmq-client-go/v2 v2.0.0
+)
+
+# 下载依赖
+go mod tidy
+
+# 运行main入口
+go run test.go
+```
+
+编写运行脚本：
+
+```shell
+# 先编译go文件
+go build test.go
+# 或者编译成自定义文件名文件
+go build -o mytest
+```
+
+脚本：
+
+```shell
+vi startup.sh
+```
+
+```shell
+#! /bin/sh
+#kill
+pid=`ps -ef | grep "hello" | grep -v grep | awk '{print $2}'`
+echo "run pid:"$pid
+if [ "$pid" != "" ]
+then
+        echo "Try to kill the go service /root/go/src/hello progress $pid......"
+        kill -9 $pid
+        sleep 1
+fi
+
+echo "begin start"
+
+#启动
+cd /root/go/src/hello
+# >>是继续写入，>是覆盖写入，每天写入一个新的日志文件
+nohup ./hello >> nohup`date +%Y-%m-%d`.out 2>&1 &
+#nohup ./hello >&1 &
+echo "end"
+```
+
+```
+# 修改脚本文件权限
+chmod 777 startup.sh
+```
+
+
+
+】
+
 ## 二、开发规范
 
 1. 入口文件方法名是main，包名一定要是main。
@@ -271,7 +398,7 @@ n1, _ = strconv.ParseInt(s3, 10, 64)
    slice := []string{"张学友","刘德华","黎明","郭富城"}
    ```
 
-   slice是引用类型，它能直接拿到地址，它拿到的地址是第一个值的地址。
+   slice是引用类型，它能直接拿到地址，它拿到的地址是第一个值的地址。改变切片的元素会影响其他与他共享数据的对象。
 
    ```go
    // 容量表示该切片能容纳多少内容，而长度表示切片内有值的部分的长度
@@ -1833,6 +1960,305 @@ n1, _ = strconv.ParseInt(s3, 10, 64)
    | ReportAllocs() | 报告内存信息 |
    | runN(n int) | 运行一个基准函数 |
    
+
+## 二十一、连接oracle数据库
+
+linux环境下：
+
+在官网https://www.oracle.com/database/technologies/instant-client/linux-x86-64-downloads.html
+
+下载oracle-instantclient-basic-21.1.0.0.0-1.x86_64.rpm，安装客户端
+
+```shell
+# 默认安装路径为/usr/lib/oracle
+sudo rpm -ivh oracle-instantclient-basic-21.1.0.0.0-1.x86_64.rpm
+```
+
+代码：
+
+```go
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	_ "github.com/godror/godror"
+)
+
+//数据库配置
+const (
+	host        = "localhost"
+	port        = 1521
+	user        = "c##ot"
+	sqlpassword = "sys"
+	dbname      = "orcldb"
+)
+
+func main() {
+	// 用户名/密码@IP:端口/实例名
+	osqlInfo := fmt.Sprintf("%s/%s@%s:%d/%s", user, sqlpassword, host, port, dbname)
+	fmt.Println(osqlInfo)
+	db, err := sql.Open("godror", osqlInfo)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("conn success!")
+
+	query(db, "select useracct, userpwd from useracct")
+	//del(db, "test")
+	//insert(db, "test", "lin123")
+	//tranc(db, "test", "lin123")
+	//update(db, "test", "lin123..")
+	//query(db, "select useracct, userpwd from useracct")
+
+}
+
+// 查询
+func query(db *sql.DB, sqlstmt string) {
+	type useracct struct {
+		useracct string
+		userpwd string
+	}
+	stmt, err := db.Prepare(sqlstmt)
+
+	if err != nil {
+		panic(err)
+	}
+	rows, err := stmt.Query()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("query result:")
+	for rows.Next() {
+		tmpData := &useracct{}
+		rows.Scan(&tmpData.useracct, &tmpData.userpwd)
+		fmt.Println(tmpData)
+	}
+
+	defer func() {
+		stmt.Close()
+		rows.Close()
+	}()
+}
+
+// 增加
+func insert(db *sql.DB, useracct string, userpwd string) {
+	sqlStatement := "INSERT INTO useracct(useracct, userpwd) VALUES (:useracct, :userpwd)"
+	stmt, err := db.Prepare(sqlStatement)
+	defer stmt.Close()
+	if err != nil {
+		panic(err)
+	}
+	_, err = stmt.Exec(useracct, userpwd)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("insert success!")
+}
+
+// 删除
+func del(db *sql.DB, useracct string) {
+	sqlStatement := "DELETE FROM USERACCT WHERE USERACCT = :useracct"
+
+	stmt, err := db.Prepare(sqlStatement)
+
+	defer stmt.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = stmt.Exec(useracct)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("delete useracct = %s success!\n", useracct)
+}
+
+// 修改
+func update(db *sql.DB, useracct string, userpwd string) {
+	sqlStatement := "UPDATE USERACCT SET USERPWD = :x1 WHERE USERACCT = :x2"
+	stmt, err := db.Prepare(sqlStatement)
+	defer stmt.Close()
+	if err != nil {
+		panic(err)
+	}
+	_, err = stmt.Exec(userpwd, useracct)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("update useracct = %s set userpwd = %s success!\n", useracct, userpwd)
+}
+
+// 事务
+func tranc(db *sql.DB, useracct string, userpwd string) {
+
+	//开启事务tx，若后续任何操作有出错，则回滚
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	sqlStatement := "INSERT INTO useracct(useracct, userpwd) VALUES (:x1, :x2)"
+	sqlStatement2 := "INSERT INTO useracct(useracct, userpwd) VALUES (:useracct, :userpwd)"
+
+	stmt2, err := tx.Prepare(sqlStatement2)
+	defer stmt2.Close()
+	if err != nil {
+		tx.Rollback() //回滚
+		panic(err)
+	}
+	_, err = stmt2.Exec("test2", "lin123")
+	if err != nil {
+		tx.Rollback() //回滚
+		panic(err)
+	}
+
+	stmt, err := tx.Prepare(sqlStatement)
+	defer stmt.Close()
+	if err != nil {
+		tx.Rollback() //回滚
+		panic(err)
+	}
+	_, err = stmt.Exec(useracct, userpwd)
+	if err != nil {
+		tx.Rollback() //回滚
+		panic(err)
+	}
+
+	tx.Commit() //提交
+}
+```
+
+
+
+## 二十二、连接redis
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/garyburd/redigo/redis"
+)
+
+func main() {
+	conn,err := redisConn()
+
+	if err != nil {
+		fmt.Println("connect redis error :",err)
+		return
+	}
+
+	defer conn.Close()
+
+	key := "test"
+	param := "This is test data!"
+
+	redisSetString(conn, key, param)
+	flag, err := redisExist(conn, key)
+	if err == nil && flag {
+		redisGotString(conn, key)
+	}
+	redisSetString(conn, key, param)
+	//redisSetNX(conn, key, param)
+
+	//redisDel(conn, key)
+	//
+	//flag, err = redisExist(conn, key)
+	//
+	//if err == nil && flag {
+	//	redisGotString(conn, key)
+	//}
+
+}
+
+// 连接
+func redisConn() (redis.Conn, error){
+	do := redis.DialPassword("freesay")
+	conn,err := redis.Dial("tcp","121.196.161.134:6379", do)
+	if err != nil {
+		fmt.Println("connect redis error :",err)
+		return nil, err
+	}
+	return conn, err
+}
+
+// 判断key是否存在
+func redisExist(conn redis.Conn, key string) (bool, error) {
+	flag, err := redis.Bool(conn.Do("EXISTS", key))
+
+	if err != nil {
+		fmt.Println("redis exits operation error:", err)
+		return false, nil
+	}
+	if flag {
+		fmt.Printf("%s is exists in redis \n", key)
+		return flag, nil
+	}
+	fmt.Printf("%s is not exists in redis \n", key)
+	return flag, nil
+}
+
+// 获取单个key的值
+func redisGotString(conn redis.Conn, key string) (string, error) {
+	val, err := redis.String(conn.Do("GET", key))
+	if err != nil {
+		fmt.Println("redis get error:", err)
+	} else {
+		fmt.Printf("Got %s: %s \n", key, val)
+	}
+	return val, err
+}
+
+// 设置string
+func redisSetString(conn redis.Conn, key string, param string){
+	num, err := redis.Int(conn.Do("SET", key, param))
+	if err != nil {
+		fmt.Println("redis set error:", err)
+	} else {
+		if int64(num) > 0 {
+			fmt.Printf("redis set string success：%s \n", param)
+		} else {
+			fmt.Printf("redis set string fail, maybe is exists：%s \n", param)
+		}
+	}
+}
+
+// 设置setnx
+func redisSetNX(conn redis.Conn, key string, param string){
+	num, err := redis.Int(conn.Do("SETNX", key, param))
+	if err != nil {
+		fmt.Println("redis set error:", err)
+	} else {
+		if num > 0 {
+			fmt.Printf("redis setnx success：%s \n", param)
+		} else {
+			fmt.Printf("redis setnx fail, maybe is exists：%s \n", param)
+		}
+	}
+}
+
+// 删除
+func redisDel(conn redis.Conn, key string){
+	n, err := redis.Int(conn.Do("DEL", key))
+
+	if err != nil {
+		fmt.Println("redis del error:", err)
+	} else {
+		fmt.Printf("redis del key %s success, del number is %d \n", key, n)
+	}
+
+}
+```
+
+
 
 ## 参考：
 

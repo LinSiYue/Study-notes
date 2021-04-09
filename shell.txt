@@ -1,0 +1,18 @@
+#! /bin/sh
+#kill
+pid=`ps -ef | grep "hello" | grep -v grep | awk '{print $2}'`
+echo "run pid:"$pid
+if [ "$pid" != "" ]
+then
+        echo "Try to kill the go service /root/go/src/hello progress $pid......"
+        kill -9 $pid
+        sleep 1
+fi
+
+echo "begin start"
+
+#启动
+cd /root/go/src/hello
+nohup ./hello >> nohup`date +%Y-%m-%d`.out 2>&1 &
+#nohup ./hello >&1 &
+echo "end"

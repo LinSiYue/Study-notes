@@ -159,6 +159,32 @@ sudo systemctl restart docker
 
 * 安装完成，默认用户密码都为root。
 
+* 重置密码
+
+  ```shell
+  vi /mydata/mysql/conf/my.cnf
+  
+  #在[mysqld]最后新增
+  skip-grant-tables
+  
+  docker exec -it mysql /bin/bash
+  
+  # 进入mysql
+  mysql
+  use mysql;
+  
+  # 查看用户和密码，以及访问地址
+  select user,authentication_string,host from user;
+  
+  # 设置密码，password()设置密文格式
+  update user set authentication_string=password('密码') where user='root';
+  
+  # 设置远程访问连接数据库，将host设置为%，默认localhost，只允许本地访问
+  update user set host='%' where user='root';
+  ```
+
+  
+
 #### 1.2.2 非docker环境
 
 （1）、检查是否已经安装过mysql，执行命令

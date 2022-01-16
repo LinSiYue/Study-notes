@@ -943,6 +943,8 @@ public static int[] RadixSort(int[] array) {
 基数排序有两种方法：
 MSD 从高位开始进行排序 LSD 从低位开始进行排序
 
+![image-20220115192427933](C:\Users\reece\AppData\Roaming\Typora\typora-user-images\image-20220115192427933.png)
+
 ### 11、比较器
 
 代码示例：
@@ -1569,6 +1571,8 @@ Spring还支持使用@Resource(JSR250)和@Inject(JSR330)[java规范的注解]：
 
 AutowiredAnnotationBeanPostProcessor
 
+* Autowired只按照类型装配；Resource是默认按照组件名装配，也可以按照类型装配
+
 ### 11. Aware原理
 
 自定义组件想要使用Spring容器底层的一些组件（ApplicationContext，BeanFactory，xxx）
@@ -2145,6 +2149,23 @@ CAS缺点：1. 循环时间长，开销大。 2. 只能保证一个共享变量�
 
 ABA问题解决：AtomicStampedReference，根据版本号修改，参数（期望值，最新值，版本号，最新版本号）。
 
+```java
+@Test
+    public void cas() {
+        AtomicInteger atomicInteger = new AtomicInteger();
+        atomicInteger.getAndSet(5);
+        atomicInteger.compareAndSet(2, 3);
+        System.out.println(atomicInteger); // 5
+        String str = "aa";
+        // 构造方法，参数：对象及初始化版本号
+        AtomicStampedReference<String> atomicStampedReference = new AtomicStampedReference<>(str, 1);
+        atomicStampedReference.compareAndSet("aa", "ccc", 3, 4);
+        System.out.println(atomicStampedReference.getReference()); // aa
+    }
+```
+
+
+
 ### 5. AQS
 
 * java.util.concurrent.locks.AbstractQueuedSynchronizer：抽象队列同步器，ReentrantLock里面的抽象静态内部类Sync就是继承了AbstractQueuedSynchronizer。
@@ -2387,6 +2408,12 @@ Hash：精确查找很快，但是范围查找和部分查找（只传联合索�
 * 持久性（Durabilily）：一旦事务成功，数据一定会落盘在数据库。即**不会出现**事务通知事务成功，但因数据库断电或者其他原因导致数据未保存到数据库。
 
 ### 2. 隔离级别
+
+* 脏读：一个事务读到了另一个事务还未提交的数据。
+* 不可重复度：（重点在修改）一个事务多次读同一个数据，第二个事务在此过程中进行数据修改，第一个事务两次次读到的数据可能不一样。
+* 幻读：（重点在新增和删除）一个事务读同个数据，第二个事务新增/删除记录，第一个事务两次读取的数据量不一样。
+
+
 
 * 读未提交：在一个事务执行的操作就算不提交，别的事务也能看到。会导致脏读，读取别人没有提交的数据，出现脏数据。
 * 读已提交：Oracle和SQL Server默认的隔离级别。在一个事务提交之后，其他事务才能看到事务的修改。在同个事务中执行相同的查询语句可能读到不同的数据，即不可重复读。

@@ -269,8 +269,17 @@ docker pull tomcat
 docker run -d -p 8088:8080 --name tomcat1 --restart=always tomcat
 # 或者
 docker run -d -p 8088:8080 --name tomcat1 -v /usr/local/dev/docker-tomcat:/usr/local/tomcat/webapps --restart=always tomcat
-```
 
+# 之后
+docker exec -it tomcat /bin/bash
+
+# 因为webapps里面文件都没有了，他默认webapps里面的每个文件夹都是一个jsp站点，需要有完整的结构，
+# 即WEB-INF文件夹、web.xml文件，可以将webapps.dist文件夹里面的内容拷贝到webapps里面
+cp webapps.dist/* webapps/
+
+# 就可以访问tomcat了，如果想自己测试index.html文件，则将index.html放到ROOT文件夹下即可
+
+```
 
 
 ### 1.5 安装nginx

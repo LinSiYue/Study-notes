@@ -282,7 +282,7 @@ cp webapps.dist/* webapps/
 ```
 
 
-### 1.5 安装nginx
+### 1.5 安装nginx（非docker）
 
 1. 下载http://nginx.org/en/download.html
 2. 安装环境
@@ -332,3 +332,32 @@ netstat -lnp|grep 80
 kill -9 <PID>
 ```
 
+### 1.6 nginx
+1. docker安装
+```shell
+docker pull nginx:latest
+```
+
+2. 运行
+```shell
+docker run -itd -p 80:80 -v /freesay/nginx/conf/nginx.conf:/etc/nginx/nginx.conf -v /freesay/nginx/html:/usr/share/nginx/html --name nginx nginx
+```
+
+3. 配置
+```conf
+server {
+    listen       80;
+    server_name  localhost;
+
+    location / {
+        root   /usr/share/nginx/html/dist;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   html;
+    }
+}
+```

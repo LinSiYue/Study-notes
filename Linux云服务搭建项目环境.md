@@ -122,20 +122,20 @@ sudo systemctl restart docker
 >  > vi /mydata/mysql/conf/my.cnf
 >  > ```
 >  >
->  > 按i插入模式，编写以下内容，esc+:wq保存退出，
+>  > 按i插入模式，编写以下内容，mysql5.5.3之后推荐使用utf8mb4编码，esc+:wq保存退出，
 >  >
 >  > ```text
 >  > [client]
->  > default-character-set=utf8
+>  > default-character-set=utf8mb4
 >  >  
 >  > [mysql]
->  > default-character-set=utf8
+>  > default-character-set=utf8mb4
 >  >  
 >  > [mysqld]
->  > init_connect='SET collation_connection = utf8_unicode_ci'
->  > init_connect='SET NAMES utf8'
->  > character-set-server=utf8
->  > collation-server=utf8_unicode_ci
+>  > init_connect='SET collation_connection = utf8mb4_unicode_ci'
+>  > init_connect='SET NAMES utf8mb4'
+>  > character-set-server=utf8mb4
+>  > collation-server=utf8mb4_unicode_ci
 >  > ```
 >  >
 >  > 重启docker容器
@@ -182,8 +182,6 @@ sudo systemctl restart docker
   # 设置远程访问连接数据库，将host设置为%，默认localhost，只允许本地访问
   update user set host='%' where user='root';
   ```
-
-  
 
 #### 1.2.2 非docker环境
 

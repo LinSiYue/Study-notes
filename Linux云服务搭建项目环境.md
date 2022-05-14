@@ -122,20 +122,20 @@ sudo systemctl restart docker
 >  > vi /mydata/mysql/conf/my.cnf
 >  > ```
 >  >
->  > 按i插入模式，编写以下内容，esc+:wq保存退出，
+>  > 按i插入模式，编写以下内容，mysql5.5.3之后推荐使用utf8mb4编码，esc+:wq保存退出，
 >  >
 >  > ```text
 >  > [client]
->  > default-character-set=utf8
+>  > default-character-set=utf8mb4
 >  >  
 >  > [mysql]
->  > default-character-set=utf8
+>  > default-character-set=utf8mb4
 >  >  
 >  > [mysqld]
->  > init_connect='SET collation_connection = utf8_unicode_ci'
->  > init_connect='SET NAMES utf8'
->  > character-set-server=utf8
->  > collation-server=utf8_unicode_ci
+>  > init_connect='SET collation_connection = utf8mb4_unicode_ci'
+>  > init_connect='SET NAMES utf8mb4'
+>  > character-set-server=utf8mb4
+>  > collation-server=utf8mb4_unicode_ci
 >  > ```
 >  >
 >  > 重启docker容器
@@ -182,8 +182,6 @@ sudo systemctl restart docker
   # 设置远程访问连接数据库，将host设置为%，默认localhost，只允许本地访问
   update user set host='%' where user='root';
   ```
-
-  
 
 #### 1.2.2 非docker环境
 
@@ -269,11 +267,20 @@ docker pull tomcat
 docker run -d -p 8088:8080 --name tomcat1 --restart=always tomcat
 # 或者
 docker run -d -p 8088:8080 --name tomcat1 -v /usr/local/dev/docker-tomcat:/usr/local/tomcat/webapps --restart=always tomcat
+
+# 之后
+docker exec -it tomcat /bin/bash
+
+# 因为webapps里面文件都没有了，他默认webapps里面的每个文件夹都是一个jsp站点，需要有完整的结构，
+# 即WEB-INF文件夹、web.xml文件，可以将webapps.dist文件夹里面的内容拷贝到webapps里面
+cp webapps.dist/* webapps/
+
+# 就可以访问tomcat了，如果想自己测试index.html文件，则将index.html放到ROOT文件夹下即可
+
 ```
 
 
-
-### 1.5 安装nginx
+### 1.5 安装nginx（非docker）
 
 1. 下载http://nginx.org/en/download.html
 2. 安装环境
@@ -323,3 +330,32 @@ netstat -lnp|grep 80
 kill -9 <PID>
 ```
 
+### 1.6 nginx
+1. docker安装
+```shell
+docker pull nginx:latest
+```
+
+2. 运行
+```shell
+docker run -itd -p 80:80 -v /freesay/nginx/conf/nginx.conf:/etc/nginx/nginx.conf -v /freesay/nginx/html:/usr/share/nginx/html --name nginx nginx
+```
+
+3. 配置
+```conf
+server {
+    listen       80;
+    server_name  localhost;
+
+    location / {
+        root   /usr/share/nginx/html/dist;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   html;
+    }
+}
+```
